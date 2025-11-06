@@ -1,0 +1,26 @@
+<Application x:Class="FileSignatureChecker.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Material Design -->
+                <materialDesign:BundledTheme BaseTheme="Light" 
+                                           PrimaryColor="DeepPurple" 
+                                           SecondaryColor="Lime"
+                                           xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <!-- Converters -->
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            <!-- Inverse Boolean Converter -->
+            <local:InverseBooleanConverter x:Key="InverseBooleanConverter" 
+                                         xmlns:local="clr-namespace:FileSignatureChecker.Converters"/>
+
+            <!-- Zero to Visibility Converter -->
+            <local:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter" 
+                                           xmlns:local="clr-namespace:FileSignatureChecker.Converters"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
