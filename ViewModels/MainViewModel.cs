@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FileSignatureChecker.Models;
@@ -163,41 +164,43 @@ namespace FileSignatureChecker.ViewModels
                 FileName = $"Результаты_проверки_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt"
             };
 
-            if (saveFileDialog.ShowDialog() != true) return;
-            try
+            if (saveFileDialog.ShowDialog() == true)
             {
-                using var writer = new StreamWriter(saveFileDialog.FileName);
-                writer.WriteLine($"Отчет о проверке файлов");
-                writer.WriteLine($"Дата: {DateTime.Now}");
-                writer.WriteLine($"XML файл: {XmlFilePath}");
-                writer.WriteLine($"Директория: {DirectoryPath}");
-                writer.WriteLine(new string('=', 80));
-                writer.WriteLine();
-                writer.WriteLine($"Статистика:");
-                writer.WriteLine($"  Всего файлов: {TotalFiles}");
-                writer.WriteLine($"  Успешно: {SuccessCount}");
-                writer.WriteLine($"  Предупреждения: {WarningCount}");
-                writer.WriteLine($"  Ошибки: {ErrorCount}");
-                writer.WriteLine($"  Информационные: {InfoCount}");
-                writer.WriteLine();
-                writer.WriteLine(new string('=', 80));
-                writer.WriteLine();
-
-                foreach (var result in CheckResults)
+                try
                 {
-                    writer.WriteLine($"Файл: {result.FileName}");
-                    writer.WriteLine($"Статус: {GetStatusText(result.Status)}");
-                    writer.WriteLine($"Сообщение: {result.Message}");
-                    if (!string.IsNullOrEmpty(result.FilePath))
-                        writer.WriteLine($"Путь: {result.FilePath}");
+                    using var writer = new StreamWriter(saveFileDialog.FileName);
+                    writer.WriteLine($"Отчет о проверке файлов");
+                    writer.WriteLine($"Дата: {DateTime.Now}");
+                    writer.WriteLine($"XML файл: {XmlFilePath}");
+                    writer.WriteLine($"Директория: {DirectoryPath}");
+                    writer.WriteLine(new string('=', 80));
                     writer.WriteLine();
-                }
+                    writer.WriteLine($"Статистика:");
+                    writer.WriteLine($"  Всего файлов: {TotalFiles}");
+                    writer.WriteLine($"  Успешно: {SuccessCount}");
+                    writer.WriteLine($"  Предупреждения: {WarningCount}");
+                    writer.WriteLine($"  Ошибки: {ErrorCount}");
+                    writer.WriteLine($"  Информационные: {InfoCount}");
+                    writer.WriteLine();
+                    writer.WriteLine(new string('=', 80));
+                    writer.WriteLine();
 
-                MessageBox.Show("Результаты успешно экспортированы", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при экспорте: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    foreach (var result in CheckResults)
+                    {
+                        writer.WriteLine($"Файл: {result.FileName}");
+                        writer.WriteLine($"Статус: {GetStatusText(result.Status)}");
+                        writer.WriteLine($"Сообщение: {result.Message}");
+                        if (!string.IsNullOrEmpty(result.FilePath))
+                            writer.WriteLine($"Путь: {result.FilePath}");
+                        writer.WriteLine();
+                    }
+
+                    MessageBox.Show("Результаты успешно экспортированы", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при экспорте: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 

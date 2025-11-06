@@ -26,7 +26,7 @@
     </Window.DataContext>
 
     <Window.Resources>
-       <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
+        <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
         <converters:StatusToIconConverter x:Key="StatusToIconConverter"/>
         
         <!-- Стиль для кнопок окна -->
@@ -72,11 +72,11 @@
 
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="64"
-                      ResizeBorderThickness="5"
-                      GlassFrameThickness="0"
-                      CornerRadius="0"/>
+                     ResizeBorderThickness="5"
+                     GlassFrameThickness="0"
+                     CornerRadius="0"/>
     </WindowChrome.WindowChrome>
-    
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

@@ -80,7 +80,7 @@ bin\Release\net8.0-windows\win-x64\publish\
 
 ### Ошибка: "NuGet packages not restored"
 
-**Решение:**
+**Решение:** 
 1. Удалите папку `bin` и `obj`
 2. Выполните команду:
    ```
@@ -106,7 +106,7 @@ bin\Release\net8.0-windows\win-x64\publish\
 
 ### OpenFolderDialog не работает
 
-**Решение:**
+**Решение:** 
 Если вы используете .NET 7 или ниже, замените `OpenFolderDialog` на `FolderBrowserDialog` в файле `MainViewModel.cs`:
 
 ```csharp
@@ -131,7 +131,7 @@ private void SelectDirectory()
 И добавьте ссылку в .csproj:
 ```xml
 <ItemGroup>
-    <PackageReference Include="System.Windows.Forms" Version="8.0.0" />
+  <PackageReference Include="System.Windows.Forms" Version="8.0.0" />
 </ItemGroup>
 ```
 

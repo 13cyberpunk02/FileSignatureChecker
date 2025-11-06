@@ -30,7 +30,7 @@ namespace FileSignatureChecker.Services
                     var fileElements = docElement.Elements("File");
                     foreach (var fileElement in fileElements)
                     {
-                        var fileInfo = new FileInfo
+                        var fileInfo = new Models.FileInfo
                         {
                             FileName = fileElement.Element("FileName")?.Value ?? string.Empty,
                             FileFormat = fileElement.Element("FileFormat")?.Value ?? string.Empty,

@@ -22,7 +22,7 @@ namespace FileSignatureChecker.Models
 
     public class SignFileInfo
     {
-        public string FileName { get; set; } = string.Empty;
+        public string FileName { get; init; } = string.Empty;
         public string FileFormat { get; set; } = string.Empty;
         public string FileChecksum { get; init; } = string.Empty;
     }

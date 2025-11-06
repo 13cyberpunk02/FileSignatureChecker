@@ -15,7 +15,7 @@ WPF приложение для автоматической проверки с
 
 ### Шаг 3: Откройте проект
 - **Visual Studio 2022**: Откройте файл `FileSignatureChecker.csproj`
-- **Командная строка**:
+- **Командная строка**: 
   ```bash
   cd FileSignatureChecker
   dotnet restore

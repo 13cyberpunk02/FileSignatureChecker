@@ -13,30 +13,30 @@ namespace FileSignatureChecker.Models
     public partial class FileCheckResult : ObservableObject
     {
         [ObservableProperty]
-        private string _fileName = string.Empty;
+        private string fileName = string.Empty;
 
         [ObservableProperty]
-        private string _signatureFileName = string.Empty;
+        private string signatureFileName = string.Empty;
 
         [ObservableProperty]
-        private CheckStatus _status;
+        private CheckStatus status;
 
         [ObservableProperty]
-        private string _message = string.Empty;
+        private string message = string.Empty;
 
         [ObservableProperty]
-        private string _filePath = string.Empty;
+        private string filePath = string.Empty;
 
         [ObservableProperty]
-        private bool _fileFound;
+        private bool fileFound;
 
         [ObservableProperty]
-        private bool _signatureFound;
+        private bool signatureFound;
 
         [ObservableProperty]
-        private string _xmlChecksum = string.Empty;
+        private string xmlChecksum = string.Empty;
 
         [ObservableProperty]
-        private string _actualChecksum = string.Empty;
+        private string actualChecksum = string.Empty;
     }
 }

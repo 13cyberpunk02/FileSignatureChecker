@@ -53,6 +53,6 @@ namespace FileSignatureChecker.Services
         }
 
         public static bool CompareChecksums(string checksum1, string checksum2)
-            => string.Equals(checksum1, checksum2, StringComparison.OrdinalIgnoreCase);
+           => string.Equals(checksum1, checksum2, StringComparison.OrdinalIgnoreCase);
     }
 }

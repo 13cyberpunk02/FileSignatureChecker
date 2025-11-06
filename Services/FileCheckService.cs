@@ -9,7 +9,6 @@ namespace FileSignatureChecker.Services
     public class FileCheckService
     {
         private readonly string[] _supportedExtensions = [".pdf", ".xls", ".xlsx", ".doc", ".docx", ".gge"];
-
         public List<FileCheckResult> CheckFiles(List<Document> documents, string directoryPath)
         {
             var results = new List<FileCheckResult>();
@@ -20,12 +19,12 @@ namespace FileSignatureChecker.Services
             {
                 foreach (var xmlFile in document.Files)
                 {
-                    var result = CheckFile(xmlFile, allFilesInDirectory);
+                    var result = CheckFile(xmlFile, allFilesInDirectory, directoryPath);
                     results.Add(result);
 
                     if (!result.FileFound || string.IsNullOrEmpty(result.FilePath)) continue;
                     processedFiles.Add(result.FilePath);
-
+                        
                     if (!result.SignatureFound || xmlFile.SignFile == null) continue;
                     var sigPath = FindSignatureFile(xmlFile.SignFile.FileName, xmlFile.SignFile.FileChecksum, allFilesInDirectory);
                     if (!string.IsNullOrEmpty(sigPath))
@@ -41,14 +40,14 @@ namespace FileSignatureChecker.Services
             return results;
         }
 
-        private FileCheckResult CheckFile(Models.FileInfo xmlFile, Dictionary<string, string> allFiles)
+        private FileCheckResult CheckFile(Models.FileInfo xmlFile, Dictionary<string, string> allFiles, string directoryPath)
         {
             var result = new FileCheckResult
             {
                 FileName = xmlFile.FileName,
                 XmlChecksum = xmlFile.FileChecksum
             };
-            
+
             var filePath = FindFileByName(xmlFile.FileName, allFiles);
 
             if (!string.IsNullOrEmpty(filePath))
@@ -78,7 +77,7 @@ namespace FileSignatureChecker.Services
                     result.FilePath = filePath;
                     result.ActualChecksum = xmlFile.FileChecksum;
                     result.Status = CheckStatus.Warning;
-                    result.Message = $"⚠ Файл найден по контрольной сумме, но с другим именем: '{Path.GetFileName(filePath)}'. В пояснительной записке нужно перезагрузить файл '{xmlFile.FileName}'.";
+                    result.Message = $"⚠ Файл найден по контрольной сумме, но с другим именем: '{Path.GetFileName(filePath)}'. В пояснительной записке нужно перезалить файл '{xmlFile.FileName}'.";
                 }
                 else
                 {
@@ -91,15 +90,13 @@ namespace FileSignatureChecker.Services
             {
                 CheckSignature(xmlFile, result, allFiles);
             }
-            else
-            {
-                CheckMissingSignatureInXml(xmlFile, result, allFiles);
-            }
+            
+            CheckAdditionalSignaturesInDirectory(xmlFile, result, allFiles);
 
             return result;
         }
 
-        private static void CheckSignature(Models.FileInfo xmlFile, FileCheckResult result, Dictionary<string, string> allFiles)
+        private void CheckSignature(Models.FileInfo xmlFile, FileCheckResult result, Dictionary<string, string> allFiles)
         {
             if (xmlFile.SignFile == null) return;
 
@@ -142,26 +139,40 @@ namespace FileSignatureChecker.Services
             }
         }
 
-        private static void CheckMissingSignatureInXml(Models.FileInfo xmlFile, FileCheckResult result, Dictionary<string, string> allFiles)
+        private static void CheckAdditionalSignaturesInDirectory(Models.FileInfo xmlFile, FileCheckResult result, Dictionary<string, string> allFiles)
         {
             var fileName = xmlFile.FileName;
             var possibleSigFiles = new List<string>();
+            var sigFileNamesFromXml = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var (key, value) in allFiles)
+            if (xmlFile.SignFile != null)
             {
-                if (!key.EndsWith(".sig", StringComparison.OrdinalIgnoreCase))
+                sigFileNamesFromXml.Add(xmlFile.SignFile.FileName);
+            }
+
+            foreach (var (fileNameInDir, value) in allFiles)
+            {
+                if (!fileNameInDir.EndsWith(".sig", StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                if (key.Equals(fileName + ".sig", StringComparison.OrdinalIgnoreCase) ||
-                    key.EndsWith($"_{fileName}.sig", StringComparison.OrdinalIgnoreCase) ||
-                    key.Contains(fileName, StringComparison.OrdinalIgnoreCase))
+                if (fileNameInDir.Equals(fileName + ".sig", StringComparison.OrdinalIgnoreCase))
                 {
-                    possibleSigFiles.Add(value);
+                    if (!sigFileNamesFromXml.Contains(fileNameInDir))
+                    {
+                        possibleSigFiles.Add(value);
+                    }
+                }
+                else if (fileNameInDir.EndsWith($"_{fileName}.sig", StringComparison.OrdinalIgnoreCase) ||
+                         fileNameInDir.Contains(fileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!sigFileNamesFromXml.Contains(fileNameInDir))
+                    {
+                        possibleSigFiles.Add(value);
+                    }
                 }
             }
 
             if (possibleSigFiles.Count <= 0) return;
-            
             if (result.Status == CheckStatus.Success)
             {
                 result.Status = CheckStatus.Warning;
@@ -169,18 +180,37 @@ namespace FileSignatureChecker.Services
 
             var sigFileNames = possibleSigFiles.Select(Path.GetFileName).ToList();
                 
-            if (possibleSigFiles.Count == 1)
+            if (xmlFile.SignFile != null)
             {
-                result.Message += $"\n⚠ Найдена подпись '{sigFileNames[0]}' в директории, но она не указана в XML.\n  → Необходимо загрузить подпись в пояснительную записку.";
+                if (possibleSigFiles.Count == 1)
+                {
+                    result.Message += $"\n⚠ Найдена дополнительная подпись '{sigFileNames[0]}' в директории, которая не указана в XML.\n  → Необходимо загрузить эту подпись в пояснительную записку.";
+                }
+                else
+                {
+                    result.Message += $"\n⚠ Найдено {possibleSigFiles.Count} дополнительных подписей в директории, которые не указаны в XML:";
+                    foreach (var sigName in sigFileNames)
+                    {
+                        result.Message += $"\n  • {sigName}";
+                    }
+                    result.Message += "\n  → Необходимо загрузить эти подписи в пояснительную записку.";
+                }
             }
             else
             {
-                result.Message += $"\n⚠ Найдено {possibleSigFiles.Count} подписей в директории, но они не указаны в XML:";
-                foreach (var sigName in sigFileNames)
+                if (possibleSigFiles.Count == 1)
                 {
-                    result.Message += $"\n  • {sigName}";
+                    result.Message += $"\n⚠ Найдена подпись '{sigFileNames[0]}' в директории, но она не указана в XML.\n  → Необходимо загрузить подпись в пояснительную записку.";
                 }
-                result.Message += "\n  → Необходимо загрузить подписи в пояснительную записку.";
+                else
+                {
+                    result.Message += $"\n⚠ Найдено {possibleSigFiles.Count} подписей в директории, но они не указаны в XML:";
+                    foreach (var sigName in sigFileNames)
+                    {
+                        result.Message += $"\n  • {sigName}";
+                    }
+                    result.Message += "\n  → Необходимо загрузить подписи в пояснительную записку.";
+                }
             }
         }
 
@@ -240,17 +270,15 @@ namespace FileSignatureChecker.Services
         }
 
         private static string FindFileByName(string fileName, Dictionary<string, string> allFiles)
-        {
-            return allFiles.TryGetValue(fileName, out var filePath) ? filePath : string.Empty;
-        }
+            => allFiles.TryGetValue(fileName, out var filePath) 
+                ? filePath 
+                : string.Empty;
 
         private static string FindFileByChecksum(string checksum, Dictionary<string, string> allFiles)
         {
-            foreach (var file in allFiles.Values)
+            foreach (var file in from file in allFiles.Values let actualChecksum = Crc32Service.CalculateChecksum(file) where Crc32Service.CompareChecksums(checksum, actualChecksum) select file)
             {
-                var actualChecksum = Crc32Service.CalculateChecksum(file);
-                if (Crc32Service.CompareChecksums(checksum, actualChecksum))
-                    return file;
+                return file;
             }
 
             return string.Empty;
