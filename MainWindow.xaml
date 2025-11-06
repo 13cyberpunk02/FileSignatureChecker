@@ -121,7 +121,6 @@
                                                Width="20" Height="20"/>
                     </Button>
                     
-                    <!-- Развернуть/Восстановить -->
                     <Button x:Name="MaximizeButton"
                             Style="{StaticResource WindowButtonStyle}"
                             Click="MaximizeButton_Click"
@@ -377,8 +376,14 @@
                             <!-- Имя файла -->
                             <DataGridTextColumn Header="Файл" 
                                               Binding="{Binding FileName}"
-                                              Width="300"/>
-
+                                              Width="300">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextWrapping" Value="Wrap"/>
+                                        <Setter Property="Margin" Value="0,4"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             <!-- Сообщение -->
                             <DataGridTextColumn Header="Результат" 
                                               Binding="{Binding Message}"
