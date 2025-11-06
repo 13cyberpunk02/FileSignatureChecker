@@ -415,19 +415,33 @@
 
                     <!-- Индикатор загрузки -->
                     <Grid Grid.Row="1" 
-                        Background="#80000000"
-                        Visibility="{Binding IsChecking, Converter={StaticResource BooleanToVisibilityConverter}}">
+                          Background="#80000000"
+                          Visibility="{Binding IsChecking, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel HorizontalAlignment="Center" 
-                                  VerticalAlignment="Center">
+                                    VerticalAlignment="Center">
+        
                             <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
-                                       Value="0"
-                                       IsIndeterminate="True"
-                                       Width="48" Height="48"/>
-                            <TextBlock Text="Выполняется проверка..." 
-                                     Foreground="White"
-                                     FontSize="16"
-                                     Margin="0,16,0,0"
-                                     HorizontalAlignment="Center"/>
+                                         Value="{Binding ProgressValue}"
+                                         Maximum="{Binding ProgressMax}"
+                                         IsIndeterminate="False"
+                                         Width="80" Height="80"
+                                         Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+        
+                            <TextBlock Text="{Binding ProgressValue, StringFormat={}{0}%}" 
+                                       Foreground="White"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,-60,0,0"/>
+        
+                            <TextBlock Text="{Binding ProgressText}" 
+                                       Foreground="White"
+                                       FontSize="14"
+                                       Margin="0,70,0,0"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       MaxWidth="300"
+                                       TextWrapping="Wrap"/>
                         </StackPanel>
                     </Grid>
 

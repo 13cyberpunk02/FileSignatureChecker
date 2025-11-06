@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Documents;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -32,6 +34,15 @@ namespace FileSignatureChecker.ViewModels
         [ObservableProperty]
         private int _totalFiles;
 
+        [ObservableProperty]
+        private int _progressValue;
+
+        [ObservableProperty]
+        private int _progressMax = 100;
+
+        [ObservableProperty]
+        private string _progressText = "";
+        
         [ObservableProperty]
         private int _successCount;
 
@@ -110,20 +121,81 @@ namespace FileSignatureChecker.ViewModels
             StatusMessage = "Выполняется проверка...";
             CheckResults.Clear();
             ResetCounters();
-
+            ProgressValue = 0;
+            ProgressText = "Подготовка...";
+            
             try
             {
                 await Task.Run(() =>
                 {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        ProgressText = "Парсинг XML файла...";
+                        ProgressValue = 10;
+                    });
+                    
                     var documents = XmlParserService.ParseXmlFile(XmlFilePath);
-                    var results = _fileCheckService.CheckFiles(documents, DirectoryPath);
+                    
+                    var totalFilesToCheck = documents.Sum(d => d.Files.Count);
+                    var processedFiles = 0;
 
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        ProgressText = "Сканирование директории...";
+                        ProgressValue = 20;
+                    });
+                    
+                    var results = new List<FileCheckResult>();
+
+                    foreach (var document in documents)
+                    {
+                        foreach (var xmlFile in document.Files)
+                        {
+                            var allFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                            var allFilesArray = Directory.GetFiles(DirectoryPath, "*.*", SearchOption.AllDirectories);
+                            foreach (var file in allFilesArray)
+                            {
+                                var fileName = Path.GetFileName(file);
+                                allFiles[fileName] = file;
+                            }
+
+                            var result = _fileCheckService.CheckFiles([document], DirectoryPath)
+                                .FirstOrDefault(r => r.FileName == xmlFile.FileName);
+                    
+                            if (result != null)
+                            {
+                                results.Add(result);
+                            }
+
+                            processedFiles++;
+                            var progress = 20 + (int)((processedFiles / (double)totalFilesToCheck) * 70);
+                    
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                ProgressValue = progress;
+                                ProgressText = $"Обработано {processedFiles} из {totalFilesToCheck} файлов...";
+                            });
+                        }
+                    }
+                    
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        ProgressText = "Формирование отчета...";
+                        ProgressValue = 95;
+                    });
+                    
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         foreach (var result in results)
                         {
                             CheckResults.Add(result);
                         }
+                    });
+                    
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        ProgressValue = 100;
+                        ProgressText = "Готово!";
                     });
                 });
 
