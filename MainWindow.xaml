@@ -419,21 +419,24 @@
                           Visibility="{Binding IsChecking, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel HorizontalAlignment="Center" 
                                     VerticalAlignment="Center">
-        
+                
+                            <!-- Круговой прогресс-бар -->
                             <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
                                          Value="{Binding ProgressValue}"
                                          Maximum="{Binding ProgressMax}"
                                          IsIndeterminate="False"
                                          Width="80" Height="80"
-                                         Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-        
+                                         Foreground="#CDDC39"/>
+                
+                            <!-- Процент -->
                             <TextBlock Text="{Binding ProgressValue, StringFormat={}{0}%}" 
                                        Foreground="White"
                                        FontSize="24"
                                        FontWeight="Bold"
                                        HorizontalAlignment="Center"
                                        Margin="0,-60,0,0"/>
-        
+                
+                            <!-- Текст статуса -->
                             <TextBlock Text="{Binding ProgressText}" 
                                        Foreground="White"
                                        FontSize="14"

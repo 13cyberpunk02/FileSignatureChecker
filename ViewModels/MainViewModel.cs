@@ -98,32 +98,32 @@ namespace FileSignatureChecker.ViewModels
                 MessageBox.Show("Пожалуйста, выберите XML файл", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-
+        
             if (string.IsNullOrWhiteSpace(DirectoryPath))
             {
                 MessageBox.Show("Пожалуйста, выберите директорию", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-
+        
             if (!File.Exists(XmlFilePath))
             {
                 MessageBox.Show("XML файл не найден", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-
+        
             if (!Directory.Exists(DirectoryPath))
             {
                 MessageBox.Show("Директория не найдена", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-
+        
             IsChecking = true;
             StatusMessage = "Выполняется проверка...";
             CheckResults.Clear();
             ResetCounters();
             ProgressValue = 0;
             ProgressText = "Подготовка...";
-            
+        
             try
             {
                 await Task.Run(() =>
@@ -133,72 +133,36 @@ namespace FileSignatureChecker.ViewModels
                         ProgressText = "Парсинг XML файла...";
                         ProgressValue = 10;
                     });
-                    
+        
                     var documents = XmlParserService.ParseXmlFile(XmlFilePath);
-                    
-                    var totalFilesToCheck = documents.Sum(d => d.Files.Count);
-                    var processedFiles = 0;
-
+        
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        ProgressText = "Сканирование директории...";
-                        ProgressValue = 20;
+                        ProgressText = "Проверка файлов...";
+                        ProgressValue = 30;
                     });
-                    
-                    var results = new List<FileCheckResult>();
-
-                    foreach (var document in documents)
-                    {
-                        foreach (var xmlFile in document.Files)
-                        {
-                            var allFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                            var allFilesArray = Directory.GetFiles(DirectoryPath, "*.*", SearchOption.AllDirectories);
-                            foreach (var file in allFilesArray)
-                            {
-                                var fileName = Path.GetFileName(file);
-                                allFiles[fileName] = file;
-                            }
-
-                            var result = _fileCheckService.CheckFiles([document], DirectoryPath)
-                                .FirstOrDefault(r => r.FileName == xmlFile.FileName);
-                    
-                            if (result != null)
-                            {
-                                results.Add(result);
-                            }
-
-                            processedFiles++;
-                            var progress = 20 + (int)((processedFiles / (double)totalFilesToCheck) * 70);
-                    
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                ProgressValue = progress;
-                                ProgressText = $"Обработано {processedFiles} из {totalFilesToCheck} файлов...";
-                            });
-                        }
-                    }
-                    
+        
+                    var results = _fileCheckService.CheckFiles(documents, DirectoryPath);
+        
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         ProgressText = "Формирование отчета...";
-                        ProgressValue = 95;
+                        ProgressValue = 80;
                     });
-                    
+        
+                    System.Threading.Thread.Sleep(200);
+        
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         foreach (var result in results)
                         {
                             CheckResults.Add(result);
                         }
-                    });
-                    
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
                         ProgressValue = 100;
                         ProgressText = "Готово!";
                     });
                 });
-
+        
                 CalculateStatistics();
                 StatusMessage = $"Проверка завершена. Всего файлов: {TotalFiles}";
             }
