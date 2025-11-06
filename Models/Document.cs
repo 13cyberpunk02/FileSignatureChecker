@@ -9,14 +9,14 @@ namespace FileSignatureChecker.Models
         public string DocNumber { get; set; } = string.Empty;
         public string DocDate { get; set; } = string.Empty;
         public string DocIssueAuthor { get; set; } = string.Empty;
-        public List<FileInfo> Files { get; set; } = new();
+        public List<FileInfo> Files { get; set; } = [];
     }
 
     public class FileInfo
     {
-        public string FileName { get; set; } = string.Empty;
+        public string FileName { get; init; } = string.Empty;
         public string FileFormat { get; set; } = string.Empty;
-        public string FileChecksum { get; set; } = string.Empty;
+        public string FileChecksum { get; init; } = string.Empty;
         public SignFileInfo? SignFile { get; set; }
     }
 
@@ -24,6 +24,6 @@ namespace FileSignatureChecker.Models
     {
         public string FileName { get; set; } = string.Empty;
         public string FileFormat { get; set; } = string.Empty;
-        public string FileChecksum { get; set; } = string.Empty;
+        public string FileChecksum { get; init; } = string.Empty;
     }
 }

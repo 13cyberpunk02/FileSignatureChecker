@@ -14,49 +14,40 @@ namespace FileSignatureChecker.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
-        private readonly XmlParserService _xmlParserService;
-        private readonly FileCheckService _fileCheckService;
-        private readonly Crc32Service _crc32Service;
+        private readonly FileCheckService _fileCheckService = new();
 
         [ObservableProperty]
-        private string xmlFilePath = string.Empty;
+        private string _xmlFilePath = string.Empty;
 
         [ObservableProperty]
-        private string directoryPath = string.Empty;
+        private string _directoryPath = string.Empty;
 
         [ObservableProperty]
-        private ObservableCollection<FileCheckResult> checkResults = new();
+        private ObservableCollection<FileCheckResult> _checkResults = [];
 
         [ObservableProperty]
-        private bool isChecking;
+        private bool _isChecking;
 
         [ObservableProperty]
-        private int totalFiles;
+        private int _totalFiles;
 
         [ObservableProperty]
-        private int successCount;
+        private int _successCount;
 
         [ObservableProperty]
-        private int warningCount;
+        private int _warningCount;
 
         [ObservableProperty]
-        private int errorCount;
+        private int _errorCount;
 
         [ObservableProperty]
-        private int infoCount;
+        private int _infoCount;
 
         [ObservableProperty]
-        private string statusMessage = "Готов к проверке";
+        private string _statusMessage = "Готов к проверке";
 
         [ObservableProperty]
-        private FileCheckResult? selectedResult;
-
-        public MainViewModel()
-        {
-            _xmlParserService = new XmlParserService();
-            _crc32Service = new Crc32Service();
-            _fileCheckService = new FileCheckService(_crc32Service);
-        }
+        private FileCheckResult? _selectedResult;
 
         [RelayCommand]
         private void SelectXmlFile()
@@ -123,7 +114,7 @@ namespace FileSignatureChecker.ViewModels
             {
                 await Task.Run(() =>
                 {
-                    var documents = _xmlParserService.ParseXmlFile(XmlFilePath);
+                    var documents = XmlParserService.ParseXmlFile(XmlFilePath);
                     var results = _fileCheckService.CheckFiles(documents, DirectoryPath);
 
                     Application.Current.Dispatcher.Invoke(() =>
@@ -172,43 +163,41 @@ namespace FileSignatureChecker.ViewModels
                 FileName = $"Результаты_проверки_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt"
             };
 
-            if (saveFileDialog.ShowDialog() == true)
+            if (saveFileDialog.ShowDialog() != true) return;
+            try
             {
-                try
-                {
-                    using var writer = new StreamWriter(saveFileDialog.FileName);
-                    writer.WriteLine($"Отчет о проверке файлов");
-                    writer.WriteLine($"Дата: {DateTime.Now}");
-                    writer.WriteLine($"XML файл: {XmlFilePath}");
-                    writer.WriteLine($"Директория: {DirectoryPath}");
-                    writer.WriteLine(new string('=', 80));
-                    writer.WriteLine();
-                    writer.WriteLine($"Статистика:");
-                    writer.WriteLine($"  Всего файлов: {TotalFiles}");
-                    writer.WriteLine($"  Успешно: {SuccessCount}");
-                    writer.WriteLine($"  Предупреждения: {WarningCount}");
-                    writer.WriteLine($"  Ошибки: {ErrorCount}");
-                    writer.WriteLine($"  Информационные: {InfoCount}");
-                    writer.WriteLine();
-                    writer.WriteLine(new string('=', 80));
-                    writer.WriteLine();
+                using var writer = new StreamWriter(saveFileDialog.FileName);
+                writer.WriteLine($"Отчет о проверке файлов");
+                writer.WriteLine($"Дата: {DateTime.Now}");
+                writer.WriteLine($"XML файл: {XmlFilePath}");
+                writer.WriteLine($"Директория: {DirectoryPath}");
+                writer.WriteLine(new string('=', 80));
+                writer.WriteLine();
+                writer.WriteLine($"Статистика:");
+                writer.WriteLine($"  Всего файлов: {TotalFiles}");
+                writer.WriteLine($"  Успешно: {SuccessCount}");
+                writer.WriteLine($"  Предупреждения: {WarningCount}");
+                writer.WriteLine($"  Ошибки: {ErrorCount}");
+                writer.WriteLine($"  Информационные: {InfoCount}");
+                writer.WriteLine();
+                writer.WriteLine(new string('=', 80));
+                writer.WriteLine();
 
-                    foreach (var result in CheckResults)
-                    {
-                        writer.WriteLine($"Файл: {result.FileName}");
-                        writer.WriteLine($"Статус: {GetStatusText(result.Status)}");
-                        writer.WriteLine($"Сообщение: {result.Message}");
-                        if (!string.IsNullOrEmpty(result.FilePath))
-                            writer.WriteLine($"Путь: {result.FilePath}");
-                        writer.WriteLine();
-                    }
-
-                    MessageBox.Show("Результаты успешно экспортированы", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
+                foreach (var result in CheckResults)
                 {
-                    MessageBox.Show($"Ошибка при экспорте: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    writer.WriteLine($"Файл: {result.FileName}");
+                    writer.WriteLine($"Статус: {GetStatusText(result.Status)}");
+                    writer.WriteLine($"Сообщение: {result.Message}");
+                    if (!string.IsNullOrEmpty(result.FilePath))
+                        writer.WriteLine($"Путь: {result.FilePath}");
+                    writer.WriteLine();
                 }
+
+                MessageBox.Show("Результаты успешно экспортированы", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при экспорте: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

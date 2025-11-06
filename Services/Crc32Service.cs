@@ -13,7 +13,7 @@ namespace FileSignatureChecker.Services
             for (uint i = 0; i < 256; i++)
             {
                 var crc = i;
-                for (var j = 0; j < 8; j++)
+                for (int j = 0; j < 8; j++)
                 {
                     crc = (crc & 1) != 0 ? (crc >> 1) ^ polynomial : crc >> 1;
                 }
@@ -52,9 +52,7 @@ namespace FileSignatureChecker.Services
             }
         }
 
-        public bool CompareChecksums(string checksum1, string checksum2)
-        {
-            return string.Equals(checksum1, checksum2, StringComparison.OrdinalIgnoreCase);
-        }
+        public static bool CompareChecksums(string checksum1, string checksum2)
+            => string.Equals(checksum1, checksum2, StringComparison.OrdinalIgnoreCase);
     }
 }

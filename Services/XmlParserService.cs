@@ -7,7 +7,7 @@ namespace FileSignatureChecker.Services
 {
     public class XmlParserService
     {
-        public List<Document> ParseXmlFile(string xmlPath)
+        public static List<Document> ParseXmlFile(string xmlPath)
         {
             var documents = new List<Document>();
 

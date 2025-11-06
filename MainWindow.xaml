@@ -75,7 +75,7 @@
                         </Grid.ColumnDefinitions>
 
                         <materialDesign:PackIcon Grid.Column="0" 
-                                               Kind="Xml" 
+                                               Kind="CodeBlockXml" 
                                                VerticalAlignment="Center"
                                                Margin="0,0,12,0"/>
 

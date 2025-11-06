@@ -8,13 +8,7 @@ namespace FileSignatureChecker.Services
 {
     public class FileCheckService
     {
-        private readonly Crc32Service _crc32Service;
-        private readonly string[] _supportedExtensions = { ".pdf", ".xls", ".xlsx", ".doc", ".docx", ".gge" };
-
-        public FileCheckService(Crc32Service crc32Service)
-        {
-            _crc32Service = crc32Service;
-        }
+        private readonly string[] _supportedExtensions = [".pdf", ".xls", ".xlsx", ".doc", ".docx", ".gge"];
 
         public List<FileCheckResult> CheckFiles(List<Document> documents, string directoryPath)
         {
@@ -26,19 +20,17 @@ namespace FileSignatureChecker.Services
             {
                 foreach (var xmlFile in document.Files)
                 {
-                    var result = CheckFile(xmlFile, allFilesInDirectory, directoryPath);
+                    var result = CheckFile(xmlFile, allFilesInDirectory);
                     results.Add(result);
 
-                    if (result.FileFound && !string.IsNullOrEmpty(result.FilePath))
+                    if (!result.FileFound || string.IsNullOrEmpty(result.FilePath)) continue;
+                    processedFiles.Add(result.FilePath);
+
+                    if (!result.SignatureFound || xmlFile.SignFile == null) continue;
+                    var sigPath = FindSignatureFile(xmlFile.SignFile.FileName, xmlFile.SignFile.FileChecksum, allFilesInDirectory);
+                    if (!string.IsNullOrEmpty(sigPath))
                     {
-                        processedFiles.Add(result.FilePath);
-                        
-                        if (!result.SignatureFound || xmlFile.SignFile == null) continue;
-                        var sigPath = FindSignatureFile(xmlFile.SignFile.FileName, xmlFile.SignFile.FileChecksum, allFilesInDirectory);
-                        if (!string.IsNullOrEmpty(sigPath))
-                        {
-                            processedFiles.Add(sigPath);
-                        }
+                        processedFiles.Add(sigPath);
                     }
                 }
             }
@@ -49,14 +41,14 @@ namespace FileSignatureChecker.Services
             return results;
         }
 
-        private FileCheckResult CheckFile(Models.FileInfo xmlFile, Dictionary<string, string> allFiles, string directoryPath)
+        private FileCheckResult CheckFile(Models.FileInfo xmlFile, Dictionary<string, string> allFiles)
         {
             var result = new FileCheckResult
             {
                 FileName = xmlFile.FileName,
                 XmlChecksum = xmlFile.FileChecksum
             };
-
+            
             var filePath = FindFileByName(xmlFile.FileName, allFiles);
 
             if (!string.IsNullOrEmpty(filePath))
@@ -65,7 +57,7 @@ namespace FileSignatureChecker.Services
                 result.FilePath = filePath;
                 result.ActualChecksum = Crc32Service.CalculateChecksum(filePath);
 
-                if (_crc32Service.CompareChecksums(xmlFile.FileChecksum, result.ActualChecksum))
+                if (Crc32Service.CompareChecksums(xmlFile.FileChecksum, result.ActualChecksum))
                 {
                     result.Status = CheckStatus.Success;
                     result.Message = $"✓ Файл '{xmlFile.FileName}' найден, контрольная сумма совпадает";
@@ -86,7 +78,7 @@ namespace FileSignatureChecker.Services
                     result.FilePath = filePath;
                     result.ActualChecksum = xmlFile.FileChecksum;
                     result.Status = CheckStatus.Warning;
-                    result.Message = $"⚠ Файл найден по контрольной сумме, но с другим именем: '{Path.GetFileName(filePath)}'. В пояснительной записке нужно перезалить файл '{xmlFile.FileName}'.";
+                    result.Message = $"⚠ Файл найден по контрольной сумме, но с другим именем: '{Path.GetFileName(filePath)}'. В пояснительной записке нужно перезагрузить файл '{xmlFile.FileName}'.";
                 }
                 else
                 {
@@ -99,11 +91,15 @@ namespace FileSignatureChecker.Services
             {
                 CheckSignature(xmlFile, result, allFiles);
             }
+            else
+            {
+                CheckMissingSignatureInXml(xmlFile, result, allFiles);
+            }
 
             return result;
         }
 
-        private void CheckSignature(Models.FileInfo xmlFile, FileCheckResult result, Dictionary<string, string> allFiles)
+        private static void CheckSignature(Models.FileInfo xmlFile, FileCheckResult result, Dictionary<string, string> allFiles)
         {
             if (xmlFile.SignFile == null) return;
 
@@ -116,7 +112,7 @@ namespace FileSignatureChecker.Services
                 result.SignatureFound = true;
                 var actualSigChecksum = Crc32Service.CalculateChecksum(sigPath);
 
-                if (_crc32Service.CompareChecksums(xmlFile.SignFile.FileChecksum, actualSigChecksum))
+                if (Crc32Service.CompareChecksums(xmlFile.SignFile.FileChecksum, actualSigChecksum))
                 {
                     result.Message += result.FileFound 
                         ? $"\n✓ Подпись '{xmlFile.SignFile.FileName}' найдена и совпадает"
@@ -146,18 +142,66 @@ namespace FileSignatureChecker.Services
             }
         }
 
+        private static void CheckMissingSignatureInXml(Models.FileInfo xmlFile, FileCheckResult result, Dictionary<string, string> allFiles)
+        {
+            var fileName = xmlFile.FileName;
+            var possibleSigFiles = new List<string>();
+
+            foreach (var (key, value) in allFiles)
+            {
+                if (!key.EndsWith(".sig", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (key.Equals(fileName + ".sig", StringComparison.OrdinalIgnoreCase) ||
+                    key.EndsWith($"_{fileName}.sig", StringComparison.OrdinalIgnoreCase) ||
+                    key.Contains(fileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    possibleSigFiles.Add(value);
+                }
+            }
+
+            if (possibleSigFiles.Count <= 0) return;
+            
+            if (result.Status == CheckStatus.Success)
+            {
+                result.Status = CheckStatus.Warning;
+            }
+
+            var sigFileNames = possibleSigFiles.Select(Path.GetFileName).ToList();
+                
+            if (possibleSigFiles.Count == 1)
+            {
+                result.Message += $"\n⚠ Найдена подпись '{sigFileNames[0]}' в директории, но она не указана в XML.\n  → Необходимо загрузить подпись в пояснительную записку.";
+            }
+            else
+            {
+                result.Message += $"\n⚠ Найдено {possibleSigFiles.Count} подписей в директории, но они не указаны в XML:";
+                foreach (var sigName in sigFileNames)
+                {
+                    result.Message += $"\n  • {sigName}";
+                }
+                result.Message += "\n  → Необходимо загрузить подписи в пояснительную записку.";
+            }
+        }
+
         private List<FileCheckResult> CheckUnprocessedFiles(Dictionary<string, string> allFiles, HashSet<string> processedFiles)
         {
-            return (from kvp in allFiles
-                let filePath = kvp.Value
-                let fileName = kvp.Key
-                where !processedFiles.Contains(filePath)
-                let extension = Path.GetExtension(fileName).ToLower()
-                where _supportedExtensions.Contains(extension)
-                let sigFileName = fileName + ".sig"
-                let hasSigFile = allFiles.ContainsKey(sigFileName.ToLower())
-                where hasSigFile
-                select new FileCheckResult
+            var results = new List<FileCheckResult>();
+
+            foreach (var (fileName, filePath) in allFiles)
+            {
+                if (processedFiles.Contains(filePath))
+                    continue;
+
+                var extension = Path.GetExtension(fileName).ToLower();
+                if (!_supportedExtensions.Contains(extension))
+                    continue;
+
+                var sigFileName = fileName + ".sig";
+                var hasSigFile = allFiles.ContainsKey(sigFileName.ToLower());
+
+                if (!hasSigFile) continue;
+                var result = new FileCheckResult
                 {
                     FileName = fileName,
                     FilePath = filePath,
@@ -167,10 +211,14 @@ namespace FileSignatureChecker.Services
                     Status = CheckStatus.Info,
                     ActualChecksum = Crc32Service.CalculateChecksum(filePath),
                     Message = $"ℹ Файл '{fileName}' с подписью '{sigFileName}' не загружен в пояснительную записку. Необходимо загрузить."
-                }).ToList();
+                };
+                results.Add(result);
+            }
+
+            return results;
         }
 
-        private Dictionary<string, string> GetAllFiles(string directoryPath)
+        private static Dictionary<string, string> GetAllFiles(string directoryPath)
         {
             var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -191,25 +239,26 @@ namespace FileSignatureChecker.Services
             return files;
         }
 
-        private string FindFileByName(string fileName, Dictionary<string, string> allFiles)
+        private static string FindFileByName(string fileName, Dictionary<string, string> allFiles)
         {
             return allFiles.TryGetValue(fileName, out var filePath) ? filePath : string.Empty;
         }
 
-        private string FindFileByChecksum(string checksum, Dictionary<string, string> allFiles)
+        private static string FindFileByChecksum(string checksum, Dictionary<string, string> allFiles)
         {
-            foreach (var file in from file in allFiles.Values let actualChecksum = Crc32Service.CalculateChecksum(file) where _crc32Service.CompareChecksums(checksum, actualChecksum) select file)
+            foreach (var file in allFiles.Values)
             {
-                return file;
+                var actualChecksum = Crc32Service.CalculateChecksum(file);
+                if (Crc32Service.CompareChecksums(checksum, actualChecksum))
+                    return file;
             }
 
             return string.Empty;
         }
 
-        private string FindSignatureFile(string signatureFileName, string signatureChecksum, Dictionary<string, string> allFiles)
-        {
-            return allFiles.TryGetValue(signatureFileName, out var filePath) ? filePath :
-                FindFileByChecksum(signatureChecksum, allFiles);
-        }
+        private static string FindSignatureFile(string signatureFileName, string signatureChecksum, Dictionary<string, string> allFiles)
+            => allFiles.TryGetValue(signatureFileName, out var filePath) 
+                ? filePath 
+                : FindFileByChecksum(signatureChecksum, allFiles);
     }
 }
