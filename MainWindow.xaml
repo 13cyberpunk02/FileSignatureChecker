@@ -416,7 +416,8 @@
                     <!-- Индикатор загрузки -->
                     <Grid Grid.Row="1" 
                           Background="#80000000"
-                          Visibility="{Binding IsChecking, Converter={StaticResource BooleanToVisibilityConverter}}">
+                          Visibility="{Binding IsChecking, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          Panel.ZIndex="999">
                         <StackPanel HorizontalAlignment="Center" 
                                     VerticalAlignment="Center">
                 
