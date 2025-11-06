@@ -10,6 +10,9 @@
         Title="Проверка файлов и подписей" 
         Height="800" Width="1400"
         WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        ResizeMode="CanResize"
         Background="{DynamicResource MaterialDesignPaper}"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
@@ -23,10 +26,57 @@
     </Window.DataContext>
 
     <Window.Resources>
-        <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
+       <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
         <converters:StatusToIconConverter x:Key="StatusToIconConverter"/>
+        
+        <!-- Стиль для кнопок окна -->
+        <Style x:Key="WindowButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#5527166F"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#7727166F"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Стиль для кнопки закрытия -->
+        <Style x:Key="CloseButtonStyle" TargetType="Button" BasedOn="{StaticResource WindowButtonStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E81123"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#C50F1F"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="64"
+                      ResizeBorderThickness="5"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"/>
+    </WindowChrome.WindowChrome>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -34,10 +84,20 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Заголовок -->
-        <materialDesign:ColorZone Grid.Row="0" Mode="PrimaryMid" Padding="16">
-            <DockPanel>
-                <StackPanel Orientation="Horizontal">
+        <!-- Заголовок с кнопками управления окном -->
+        <materialDesign:ColorZone Grid.Row="0" Mode="PrimaryMid" Padding="0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Заголовок и иконка -->
+                <StackPanel Grid.Column="0" 
+                           Orientation="Horizontal" 
+                           Margin="16,0"
+                           VerticalAlignment="Center"
+                           WindowChrome.IsHitTestVisibleInChrome="False">
                     <materialDesign:PackIcon Kind="FileDocumentCheck" 
                                            Width="32" Height="32" 
                                            VerticalAlignment="Center"
@@ -47,7 +107,39 @@
                              FontSize="20"
                              FontWeight="Medium"/>
                 </StackPanel>
-            </DockPanel>
+                
+                <!-- Кнопки управления окном -->
+                <StackPanel Grid.Column="1" 
+                           Orientation="Horizontal"
+                           WindowChrome.IsHitTestVisibleInChrome="True">
+                    
+                    <!-- Свернуть -->
+                    <Button Style="{StaticResource WindowButtonStyle}"
+                            Click="MinimizeButton_Click"
+                            ToolTip="Свернуть">
+                        <materialDesign:PackIcon Kind="WindowMinimize" 
+                                               Width="20" Height="20"/>
+                    </Button>
+                    
+                    <!-- Развернуть/Восстановить -->
+                    <Button x:Name="MaximizeButton"
+                            Style="{StaticResource WindowButtonStyle}"
+                            Click="MaximizeButton_Click"
+                            ToolTip="Развернуть">
+                        <materialDesign:PackIcon x:Name="MaximizeIcon"
+                                               Kind="WindowMaximize" 
+                                               Width="20" Height="20"/>
+                    </Button>
+                    
+                    <!-- Закрыть -->
+                    <Button Style="{StaticResource CloseButtonStyle}"
+                            Click="CloseButton_Click"
+                            ToolTip="Закрыть">
+                        <materialDesign:PackIcon Kind="WindowClose" 
+                                               Width="20" Height="20"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
         </materialDesign:ColorZone>
 
         <!-- Основное содержимое -->
