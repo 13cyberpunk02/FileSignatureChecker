@@ -13,6 +13,18 @@ namespace FileSignatureChecker.Models
     public partial class FileCheckResult : ObservableObject
     {
         [ObservableProperty]
+        private string docName = string.Empty;
+
+        [ObservableProperty]
+        private string docType = string.Empty;
+
+        [ObservableProperty]
+        private string docNumber = string.Empty;
+
+        [ObservableProperty]
+        private string docDate = string.Empty;
+
+        [ObservableProperty]
         private string fileName = string.Empty;
 
         [ObservableProperty]

@@ -256,6 +256,17 @@
                             </StackPanel>
                         </Button>
 
+                        <Button Command="{Binding ExportToExcelCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExcel" 
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+                                <TextBlock Text="Экспорт в Excel файл" Cursor=""/>
+                            </StackPanel>
+                        </Button>
+
                         <Button Command="{Binding ClearResultsCommand}"
                               Style="{StaticResource MaterialDesignOutlinedButton}">
                             <StackPanel Orientation="Horizontal">
@@ -372,6 +383,17 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="Раздел" 
+                                Binding="{Binding DocName}"
+                                Width="250">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryHueMidBrush}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
                             <!-- Имя файла -->
                             <DataGridTextColumn Header="Файл" 

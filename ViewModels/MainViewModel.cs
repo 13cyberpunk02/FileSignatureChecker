@@ -1,12 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Documents;
-using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FileSignatureChecker.Models;
@@ -17,7 +14,7 @@ namespace FileSignatureChecker.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
-        private readonly FileCheckService _fileCheckService = new();
+        private readonly FileCheckService fileCheckService = new();
 
         [ObservableProperty]
         private string _xmlFilePath = string.Empty;
@@ -98,60 +95,68 @@ namespace FileSignatureChecker.ViewModels
                 MessageBox.Show("Пожалуйста, выберите XML файл", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-        
+
             if (string.IsNullOrWhiteSpace(DirectoryPath))
             {
                 MessageBox.Show("Пожалуйста, выберите директорию", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-        
+
             if (!File.Exists(XmlFilePath))
             {
                 MessageBox.Show("XML файл не найден", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-        
+
             if (!Directory.Exists(DirectoryPath))
             {
                 MessageBox.Show("Директория не найдена", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-        
+
             IsChecking = true;
             StatusMessage = "Выполняется проверка...";
             CheckResults.Clear();
             ResetCounters();
             ProgressValue = 0;
-            ProgressText = "Подготовка...";
-        
+            ProgressText = "Подготовка";
+
+            // Запускаем анимацию точек
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var window = Application.Current.MainWindow as MainWindow;
+                window?.StartDotsAnimation();
+            });
+
             try
             {
                 await Task.Run(() =>
                 {
+                    // Парсинг XML
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        ProgressText = "Парсинг XML файла...";
+                        ProgressText = "Парсинг XML файла";
                         ProgressValue = 10;
                     });
-        
+
                     var documents = XmlParserService.ParseXmlFile(XmlFilePath);
-        
+
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        ProgressText = "Проверка файлов...";
+                        ProgressText = "Проверка файлов";
                         ProgressValue = 30;
                     });
-        
-                    var results = _fileCheckService.CheckFiles(documents, DirectoryPath);
-        
+                    
+                    var results = fileCheckService.CheckFiles(documents, DirectoryPath);
+
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        ProgressText = "Формирование отчета...";
+                        ProgressText = "Формирование отчета";
                         ProgressValue = 80;
                     });
-        
+
                     System.Threading.Thread.Sleep(200);
-        
+
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         foreach (var result in results)
@@ -162,7 +167,7 @@ namespace FileSignatureChecker.ViewModels
                         ProgressText = "Готово!";
                     });
                 });
-        
+
                 CalculateStatistics();
                 StatusMessage = $"Проверка завершена. Всего файлов: {TotalFiles}";
             }
@@ -259,6 +264,108 @@ namespace FileSignatureChecker.ViewModels
                 MessageBox.Show($"Не удалось открыть расположение файла: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        [RelayCommand]
+        private void ExportToExcel()
+        {
+            if (CheckResults.Count == 0)
+            {
+                MessageBox.Show("Нет результатов для экспорта", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Excel файлы (*.xlsx)|*.xlsx",
+                FileName = $"Результаты_проверки_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.xlsx"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    using var workbook = new ClosedXML.Excel.XLWorkbook();
+                    var worksheet = workbook.Worksheets.Add("Результаты проверки");
+
+                    // Заголовок
+                    worksheet.Cell(1, 1).Value = "Статус";
+                    worksheet.Cell(1, 2).Value = "Раздел";
+                    worksheet.Cell(1, 3).Value = "Тип документа";
+                    worksheet.Cell(1, 4).Value = "Номер документа";
+                    worksheet.Cell(1, 5).Value = "Дата документа";
+                    worksheet.Cell(1, 6).Value = "Файл";
+                    worksheet.Cell(1, 7).Value = "Результат";
+                    worksheet.Cell(1, 8).Value = "Путь к файлу";
+
+                    // Стиль заголовка
+                    var headerRange = worksheet.Range(1, 1, 1, 8);
+                    headerRange.Style.Font.Bold = true;
+                    headerRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromArgb(103, 58, 183); // Deep Purple
+                    headerRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+                    headerRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+
+                    // Данные
+                    int row = 2;
+                    foreach (var result in CheckResults)
+                    {
+                        worksheet.Cell(row, 1).Value = GetStatusText(result.Status);
+                        worksheet.Cell(row, 2).Value = result.DocName;
+                        worksheet.Cell(row, 3).Value = result.DocType;
+                        worksheet.Cell(row, 4).Value = result.DocNumber;
+                        worksheet.Cell(row, 5).Value = result.DocDate;
+                        worksheet.Cell(row, 6).Value = result.FileName;
+                        worksheet.Cell(row, 7).Value = result.Message;
+                        worksheet.Cell(row, 8).Value = result.FilePath;
+
+                        // Цвет фона в зависимости от статуса
+                        var rowRange = worksheet.Range(row, 1, row, 8);
+                        switch (result.Status)
+                        {
+                            case CheckStatus.Success:
+                                rowRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromArgb(200, 230, 201); // Светло-зеленый
+                                break;
+                            case CheckStatus.Warning:
+                                rowRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromArgb(255, 224, 178); // Светло-оранжевый
+                                break;
+                            case CheckStatus.Error:
+                                rowRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromArgb(255, 205, 210); // Светло-красный
+                                break;
+                            case CheckStatus.Info:
+                                rowRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromArgb(187, 222, 251); // Светло-синий
+                                break;
+                        }
+
+                        // Перенос текста в колонке "Результат"
+                        worksheet.Cell(row, 7).Style.Alignment.WrapText = true;
+
+                        row++;
+                    }
+
+                    // Автоподбор ширины колонок
+                    worksheet.Column(1).Width = 15;
+                    worksheet.Column(2).Width = 35;
+                    worksheet.Column(3).Width = 15;
+                    worksheet.Column(4).Width = 20;
+                    worksheet.Column(5).Width = 15;
+                    worksheet.Column(6).Width = 35;
+                    worksheet.Column(7).Width = 60;
+                    worksheet.Column(8).Width = 50;
+
+                    // Границы для всех ячеек
+                    var dataRange = worksheet.Range(1, 1, row - 1, 8);
+                    dataRange.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                    dataRange.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+
+                    workbook.SaveAs(saveFileDialog.FileName);
+                    MessageBox.Show("Excel файл успешно создан!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при создании Excel: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
 
         private void CalculateStatistics()
         {

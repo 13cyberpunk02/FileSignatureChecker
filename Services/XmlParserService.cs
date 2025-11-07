@@ -30,25 +30,30 @@ namespace FileSignatureChecker.Services
                     var fileElements = docElement.Elements("File");
                     foreach (var fileElement in fileElements)
                     {
-                        var fileInfo = new Models.FileInfo
+                        var fileInfo = new XmlFileInfo
                         {
                             FileName = fileElement.Element("FileName")?.Value ?? string.Empty,
                             FileFormat = fileElement.Element("FileFormat")?.Value ?? string.Empty,
                             FileChecksum = fileElement.Element("FileChecksum")?.Value ?? string.Empty
                         };
 
-                        var signFileElement = fileElement.Element("SignFile");
-                        if (signFileElement != null)
+                        var signFileElements = fileElement.Elements("SignFile");
+                        foreach(var signFileElement in signFileElements)
                         {
-                            fileInfo.SignFile = new SignFileInfo
+                            var signFile = new SignFileInfo
                             {
                                 FileName = signFileElement.Element("FileName")?.Value ?? string.Empty,
                                 FileFormat = signFileElement.Element("FileFormat")?.Value ?? string.Empty,
                                 FileChecksum = signFileElement.Element("FileChecksum")?.Value ?? string.Empty
                             };
+
+                            if(signFile != null)
+                            {
+                                fileInfo.SignFiles.Add(signFile);
+                            }
                         }
 
-                        document.Files.Add(fileInfo);
+                        document.Files.Add(fileInfo);                      
                     }
 
                     documents.Add(document);

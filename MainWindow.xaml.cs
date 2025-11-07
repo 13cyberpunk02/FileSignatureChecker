@@ -1,11 +1,14 @@
 using System;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace FileSignatureChecker
 {
     public partial class MainWindow
     {
+        private DispatcherTimer _dotsTimer;
+        private int _dotsCount = 0;
         public MainWindow()
         {
             InitializeComponent();
@@ -13,6 +16,34 @@ namespace FileSignatureChecker
             this.MouseLeftButtonDown += Window_MouseLeftButtonDown;
             
             this.StateChanged += MainWindow_StateChanged;
+
+            _dotsTimer = new DispatcherTimer();
+            _dotsTimer.Interval = TimeSpan.FromMilliseconds(500);
+            _dotsTimer.Tick += DotsTimer_Tick;
+        }
+
+        public void StartDotsAnimation()
+        {
+            _dotsCount = 0;
+            _dotsTimer.Start();
+        }
+
+        private void DotsTimer_Tick(object? sender, EventArgs e)
+        {
+            var vm = DataContext as ViewModels.MainViewModel;
+            if (vm != null && vm.IsChecking)
+            {
+                _dotsCount = (_dotsCount + 1) % 4;
+                var dots = new string('.', _dotsCount);
+
+                var baseText = vm.ProgressText.TrimEnd('.');
+                vm.ProgressText = baseText + dots;
+            }
+            else
+            {
+                _dotsTimer.Stop();
+                _dotsCount = 0;
+            }
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
