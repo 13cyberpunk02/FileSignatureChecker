@@ -15,14 +15,13 @@ namespace FileSignatureChecker.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
-        private readonly FileCheckService fileCheckService = new();
+        private readonly FileCheckService _fileCheckService = new();
 
         [ObservableProperty] private string _xmlFilePath = string.Empty;
 
         [ObservableProperty] private string _directoryPath = string.Empty;
 
-        [ObservableProperty]
-        private ObservableCollection<FileCheckResult> _checkResults = [];
+        [ObservableProperty] private ObservableCollection<FileCheckResult> _checkResults = [];
 
         [ObservableProperty] private bool _isChecking;
 
@@ -45,9 +44,12 @@ namespace FileSignatureChecker.ViewModels
         [ObservableProperty] private string _statusMessage = "Готов к проверке";
 
         [ObservableProperty] private FileCheckResult? _selectedResult;
-        
-        [ObservableProperty]
-        private string _selectedStatusFilter = "Все";
+
+        [ObservableProperty] private string selectedStatusFilter = "Все";
+
+        [ObservableProperty] private string selectedSectionFilter = "Все разделы";
+
+        [ObservableProperty] private string searchText = string.Empty;
 
         public List<string> StatusFilterOptions { get; } =
         [
@@ -57,8 +59,26 @@ namespace FileSignatureChecker.ViewModels
             "Ошибки",
             "Информация"
         ];
-        
-        private ObservableCollection<FileCheckResult> _allCheckResults = [];
+
+        [ObservableProperty] private ObservableCollection<string> sectionFilterOptions = ["Все разделы"];
+
+
+        private readonly ObservableCollection<FileCheckResult> _allCheckResults = [];
+
+        partial void OnSelectedStatusFilterChanged(string value)
+        {
+            ApplyFilters();
+        }
+
+        partial void OnSelectedSectionFilterChanged(string value)
+        {
+            ApplyFilters();
+        }
+
+        partial void OnSearchTextChanged(string value)
+        {
+            ApplyFilters();
+        }
 
         [RelayCommand]
         private void SelectXmlFile()
@@ -125,7 +145,6 @@ namespace FileSignatureChecker.ViewModels
             ProgressValue = 0;
             ProgressText = "Подготовка";
 
-            // Запускаем анимацию точек
             Application.Current.Dispatcher.Invoke(() =>
             {
                 var window = Application.Current.MainWindow as MainWindow;
@@ -136,7 +155,6 @@ namespace FileSignatureChecker.ViewModels
             {
                 await Task.Run(() =>
                 {
-                    // Парсинг XML
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         ProgressText = "Парсинг XML файла";
@@ -151,7 +169,7 @@ namespace FileSignatureChecker.ViewModels
                         ProgressValue = 30;
                     });
 
-                    var results = fileCheckService.CheckFiles(documents, DirectoryPath);
+                    var results = _fileCheckService.CheckFiles(documents, DirectoryPath);
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -168,9 +186,15 @@ namespace FileSignatureChecker.ViewModels
                         {
                             _allCheckResults.Add(result);
                         }
-    
-                        FilterResults();
-    
+
+                        UpdateSectionFilterOptions();
+
+                        SelectedStatusFilter = "Все";
+                        SelectedSectionFilter = "Все разделы";
+                        SearchText = string.Empty;
+
+                        ApplyFilters();
+
                         ProgressValue = 100;
                         ProgressText = "Готово!";
                     });
@@ -198,7 +222,17 @@ namespace FileSignatureChecker.ViewModels
             _allCheckResults.Clear();
             ResetCounters();
             SelectedStatusFilter = "Все";
+            SelectedSectionFilter = "Все разделы";
+            SearchText = string.Empty;
+            SectionFilterOptions.Clear();
+            SectionFilterOptions.Add("Все разделы");
             StatusMessage = "Результаты очищены";
+        }
+        
+        [RelayCommand]
+        private void ClearSearch()
+        {
+            SearchText = string.Empty;
         }
 
         [RelayCommand]
@@ -301,7 +335,7 @@ namespace FileSignatureChecker.ViewModels
             {
                 using var workbook = new ClosedXML.Excel.XLWorkbook();
                 var worksheet = workbook.Worksheets.Add("Результаты проверки");
-                    
+
                 worksheet.Cell(1, 1).Value = "Статус";
                 worksheet.Cell(1, 2).Value = "Раздел";
                 worksheet.Cell(1, 3).Value = "Тип документа";
@@ -317,7 +351,7 @@ namespace FileSignatureChecker.ViewModels
                 headerRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
                 headerRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
                 headerRange.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
-                    
+
                 var row = 2;
                 foreach (var result in CheckResults)
                 {
@@ -329,7 +363,7 @@ namespace FileSignatureChecker.ViewModels
                     worksheet.Cell(row, 6).Value = result.FileName;
                     worksheet.Cell(row, 7).Value = result.Message;
                     worksheet.Cell(row, 8).Value = result.FilePath;
-                        
+
                     var rowRange = worksheet.Range(row, 1, row, 8);
                     switch (result.Status)
                     {
@@ -346,22 +380,22 @@ namespace FileSignatureChecker.ViewModels
                             rowRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromArgb(187, 222, 251);
                             break;
                     }
-                     
+
                     rowRange.Style.Alignment.WrapText = true;
                     rowRange.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Top;
 
                     row++;
                 }
-                    
+
                 worksheet.Column(1).Width = 15;
-                worksheet.Column(2).Width = 40; 
+                worksheet.Column(2).Width = 40;
                 worksheet.Column(3).Width = 15;
                 worksheet.Column(4).Width = 20;
                 worksheet.Column(5).Width = 15;
-                worksheet.Column(6).Width = 40; 
-                worksheet.Column(7).Width = 70; 
-                worksheet.Column(8).Width = 60; 
-                    
+                worksheet.Column(6).Width = 40;
+                worksheet.Column(7).Width = 70;
+                worksheet.Column(8).Width = 60;
+
                 for (var r = 2; r < row; r++)
                 {
                     worksheet.Row(r).AdjustToContents();
@@ -370,11 +404,11 @@ namespace FileSignatureChecker.ViewModels
                         worksheet.Row(r).Height = 150;
                     }
                 }
-                
+
                 var dataRange = worksheet.Range(1, 1, row - 1, 8);
                 dataRange.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
                 dataRange.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
-                
+
                 worksheet.SheetView.FreezeRows(1);
 
                 workbook.SaveAs(saveFileDialog.FileName);
@@ -388,15 +422,72 @@ namespace FileSignatureChecker.ViewModels
             }
         }
 
-        partial void OnSelectedStatusFilterChanged(string value)
+        private void ApplyFilters()
         {
-            FilterResults();
+            CheckResults.Clear();
+
+            var filtered = _allCheckResults.AsEnumerable();
+
+            if (SelectedStatusFilter != "Все")
+            {
+                filtered = SelectedStatusFilter switch
+                {
+                    "Успешно" => filtered.Where(r => r.Status == CheckStatus.Success),
+                    "Предупреждения" => filtered.Where(r => r.Status == CheckStatus.Warning),
+                    "Ошибки" => filtered.Where(r => r.Status == CheckStatus.Error),
+                    "Информация" => filtered.Where(r => r.Status == CheckStatus.Info),
+                    _ => filtered
+                };
+            }
+
+            if (SelectedSectionFilter != "Все разделы")
+            {
+                filtered = filtered.Where(r => r.DocName == SelectedSectionFilter);
+            }
+
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var searchLower = SearchText.ToLower();
+                filtered = filtered.Where(r =>
+                    r.DocName.Contains(searchLower, StringComparison.CurrentCultureIgnoreCase) ||
+                    r.FileName.Contains(searchLower, StringComparison.CurrentCultureIgnoreCase) ||
+                    r.SignatureFileName.Contains(searchLower, StringComparison.CurrentCultureIgnoreCase) ||
+                    r.Message.Contains(searchLower, StringComparison.CurrentCultureIgnoreCase) ||
+                    r.DocType.Contains(searchLower, StringComparison.CurrentCultureIgnoreCase) ||
+                    r.DocNumber.Contains(searchLower, StringComparison.CurrentCultureIgnoreCase)
+                );
+            }
+
+            foreach (var result in filtered)
+            {
+                CheckResults.Add(result);
+            }
+
+            CalculateStatistics();
+        }
+
+        private void UpdateSectionFilterOptions()
+        {
+            var sections = _allCheckResults
+                .Select(r => r.DocName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct()
+                .OrderBy(name => name)
+                .ToList();
+
+            SectionFilterOptions.Clear();
+            SectionFilterOptions.Add("Все разделы");
+
+            foreach (var section in sections)
+            {
+                SectionFilterOptions.Add(section);
+            }
         }
 
         private void FilterResults()
         {
             CheckResults.Clear();
-    
+
             var filtered = SelectedStatusFilter switch
             {
                 "Успешно" => _allCheckResults.Where(r => r.Status == CheckStatus.Success),
@@ -410,10 +501,10 @@ namespace FileSignatureChecker.ViewModels
             {
                 CheckResults.Add(result);
             }
-    
+
             CalculateStatistics();
         }
-        
+
         private void CalculateStatistics()
         {
             TotalFiles = CheckResults.Count;

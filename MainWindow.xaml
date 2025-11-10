@@ -7,7 +7,7 @@
         xmlns:viewmodels="clr-namespace:FileSignatureChecker.ViewModels"
         xmlns:converters="clr-namespace:FileSignatureChecker.Converters"
         mc:Ignorable="d"
-        Title="Проверка файлов и подписей" 
+        Title="Проверка файлов и подписей"
         Height="800" Width="1400"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -22,49 +22,49 @@
         FontFamily="{DynamicResource MaterialDesignFont}">
 
     <Window.DataContext>
-        <viewmodels:MainViewModel/>
+        <viewmodels:MainViewModel />
     </Window.DataContext>
 
     <Window.Resources>
-        <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
-        <converters:StatusToIconConverter x:Key="StatusToIconConverter"/>
-        
+        <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
+        <converters:StatusToIconConverter x:Key="StatusToIconConverter" />
+
         <!-- Стиль для кнопок окна -->
         <Style x:Key="WindowButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Width" Value="46"/>
-            <Setter Property="Height" Value="32"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
+                        <Border Background="{TemplateBinding Background}"
                                 BorderThickness="0">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#5527166F"/>
+                    <Setter Property="Background" Value="#5527166F" />
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#7727166F"/>
+                    <Setter Property="Background" Value="#7727166F" />
                 </Trigger>
             </Style.Triggers>
         </Style>
-        
+
         <!-- Стиль для кнопки закрытия -->
         <Style x:Key="CloseButtonStyle" TargetType="Button" BasedOn="{StaticResource WindowButtonStyle}">
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E81123"/>
+                    <Setter Property="Background" Value="#E81123" />
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#C50F1F"/>
+                    <Setter Property="Background" Value="#C50F1F" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -72,70 +72,70 @@
 
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="64"
-                     ResizeBorderThickness="5"
-                     GlassFrameThickness="0"
-                     CornerRadius="0"/>
+                      ResizeBorderThickness="5"
+                      GlassFrameThickness="0"
+                      CornerRadius="0" />
     </WindowChrome.WindowChrome>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Заголовок с кнопками управления окном -->
         <materialDesign:ColorZone Grid.Row="0" Mode="PrimaryMid" Padding="0">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                
+
                 <!-- Заголовок и иконка -->
-                <StackPanel Grid.Column="0" 
-                           Orientation="Horizontal" 
-                           Margin="16,0"
-                           VerticalAlignment="Center"
-                           WindowChrome.IsHitTestVisibleInChrome="False">
-                    <materialDesign:PackIcon Kind="FileDocumentCheck" 
-                                           Width="32" Height="32" 
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,10,0"/>
-                    <TextBlock Text="Проверка файлов и подписей" 
-                             VerticalAlignment="Center"
-                             FontSize="20"
-                             FontWeight="Medium"/>
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            Margin="16,0"
+                            VerticalAlignment="Center"
+                            WindowChrome.IsHitTestVisibleInChrome="False">
+                    <materialDesign:PackIcon Kind="FileDocumentCheck"
+                                             Width="32" Height="32"
+                                             VerticalAlignment="Center"
+                                             Margin="0,0,10,0" />
+                    <TextBlock Text="Проверка файлов и подписей"
+                               VerticalAlignment="Center"
+                               FontSize="20"
+                               FontWeight="Medium" />
                 </StackPanel>
-                
+
                 <!-- Кнопки управления окном -->
-                <StackPanel Grid.Column="1" 
-                           Orientation="Horizontal"
-                           WindowChrome.IsHitTestVisibleInChrome="True">
-                    
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+
                     <!-- Свернуть -->
                     <Button Style="{StaticResource WindowButtonStyle}"
                             Click="MinimizeButton_Click"
                             ToolTip="Свернуть">
-                        <materialDesign:PackIcon Kind="WindowMinimize" 
-                                               Width="20" Height="20"/>
+                        <materialDesign:PackIcon Kind="WindowMinimize"
+                                                 Width="20" Height="20" />
                     </Button>
-                    
+
                     <Button x:Name="MaximizeButton"
                             Style="{StaticResource WindowButtonStyle}"
                             Click="MaximizeButton_Click"
                             ToolTip="Развернуть">
                         <materialDesign:PackIcon x:Name="MaximizeIcon"
-                                               Kind="WindowMaximize" 
-                                               Width="20" Height="20"/>
+                                                 Kind="WindowMaximize"
+                                                 Width="20" Height="20" />
                     </Button>
-                    
+
                     <!-- Закрыть -->
                     <Button Style="{StaticResource CloseButtonStyle}"
                             Click="CloseButton_Click"
                             ToolTip="Закрыть">
-                        <materialDesign:PackIcon Kind="WindowClose" 
-                                               Width="20" Height="20"/>
+                        <materialDesign:PackIcon Kind="WindowClose"
+                                                 Width="20" Height="20" />
                     </Button>
                 </StackPanel>
             </Grid>
@@ -144,47 +144,47 @@
         <!-- Основное содержимое -->
         <Grid Grid.Row="1" Margin="16">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
             <!-- Панель выбора файлов -->
             <materialDesign:Card Grid.Row="0" Padding="16" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="Настройки" 
-                             FontSize="16" 
-                             FontWeight="SemiBold"
-                             Margin="0,0,0,16"/>
+                    <TextBlock Text="Настройки"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,16" />
 
                     <!-- XML файл -->
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <materialDesign:PackIcon Grid.Column="0" 
-                                               Kind="CodeBlockXml" 
-                                               VerticalAlignment="Center"
-                                               Margin="0,0,12,0"/>
+                        <materialDesign:PackIcon Grid.Column="0"
+                                                 Kind="CodeBlockXml"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,12,0" />
 
-                        <TextBox Grid.Column="1" 
-                               Text="{Binding XmlFilePath, UpdateSourceTrigger=PropertyChanged}"
-                               materialDesign:HintAssist.Hint="XML файл"
-                               IsReadOnly="True"
-                               VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding XmlFilePath, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="XML файл"
+                                 IsReadOnly="True"
+                                 VerticalAlignment="Center" />
 
-                        <Button Grid.Column="2" 
-                              Command="{Binding SelectXmlFileCommand}"
-                              Style="{StaticResource MaterialDesignRaisedButton}"
-                              Margin="12,0,0,0">
+                        <Button Grid.Column="2"
+                                Command="{Binding SelectXmlFileCommand}"
+                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                Margin="12,0,0,0">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FolderOpen" 
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,8,0"/>
-                                <TextBlock Text="Обзор"/>
+                                <materialDesign:PackIcon Kind="FolderOpen"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="Обзор" />
                             </StackPanel>
                         </Button>
                     </Grid>
@@ -192,31 +192,31 @@
                     <!-- Директория -->
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <materialDesign:PackIcon Grid.Column="0" 
-                                               Kind="Folder" 
-                                               VerticalAlignment="Center"
-                                               Margin="0,0,12,0"/>
+                        <materialDesign:PackIcon Grid.Column="0"
+                                                 Kind="Folder"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,12,0" />
 
-                        <TextBox Grid.Column="1" 
-                               Text="{Binding DirectoryPath, UpdateSourceTrigger=PropertyChanged}"
-                               materialDesign:HintAssist.Hint="Директория с файлами"
-                               IsReadOnly="True"
-                               VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding DirectoryPath, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="Директория с файлами"
+                                 IsReadOnly="True"
+                                 VerticalAlignment="Center" />
 
-                        <Button Grid.Column="2" 
-                              Command="{Binding SelectDirectoryCommand}"
-                              Style="{StaticResource MaterialDesignRaisedButton}"
-                              Margin="12,0,0,0">
+                        <Button Grid.Column="2"
+                                Command="{Binding SelectDirectoryCommand}"
+                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                Margin="12,0,0,0">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FolderOpen" 
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,8,0"/>
-                                <TextBlock Text="Обзор"/>
+                                <materialDesign:PackIcon Kind="FolderOpen"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="Обзор" />
                             </StackPanel>
                         </Button>
                     </Grid>
@@ -224,136 +224,200 @@
             </materialDesign:Card>
 
             <!-- Панель действий -->
+            <!-- Панель действий -->
             <materialDesign:Card Grid.Row="1" Padding="16" Margin="0,0,0,16">
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                    <!-- Кнопки действий -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal">
-                        
-                        <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
-                            <materialDesign:PackIcon Kind="Filter" 
-                                                     VerticalAlignment="Center"
-                                                     Margin="0,0,8,0"
-                                                     Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-                            <TextBlock Text="Фильтр:" 
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0"
-                                       FontWeight="SemiBold"/>
-                            <ComboBox ItemsSource="{Binding StatusFilterOptions}"
-                                      SelectedItem="{Binding SelectedStatusFilter}"
-                                      Width="160"
-                                      materialDesign:HintAssist.Hint="Статус"
-                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
-                        </StackPanel>
-                        
+                    <!-- Первая строка: Кнопки действий -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
                         <Button Command="{Binding CheckFilesCommand}"
                                 Style="{StaticResource MaterialDesignRaisedButton}"
                                 IsEnabled="{Binding IsChecking, Converter={StaticResource InverseBooleanConverter}}"
                                 Margin="0,0,12,0">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="PlayCircle" 
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,8,0"/>
-                                <TextBlock Text="Выполнить проверку"/>
+                                <materialDesign:PackIcon Kind="PlayCircle"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="Выполнить проверку" />
                             </StackPanel>
                         </Button>
 
                         <Button Command="{Binding ExportResultsCommand}"
-                              Style="{StaticResource MaterialDesignOutlinedButton}"
-                              Margin="0,0,12,0">
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,0">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Export" 
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,8,0"/>
-                                <TextBlock Text="Экспорт"/>
+                                <materialDesign:PackIcon Kind="Export"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="Экспорт TXT" />
                             </StackPanel>
                         </Button>
 
                         <Button Command="{Binding ExportToExcelCommand}"
-                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                            Margin="0,0,12,0">
+                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                Background="#217346"
+                                BorderBrush="#217346"
+                                Margin="0,0,12,0">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FileExcel" 
-                               VerticalAlignment="Center"
-                               Margin="0,0,8,0"/>
-                                <TextBlock Text="Экспорт в Excel файл" Cursor=""/>
+                                <materialDesign:PackIcon Kind="MicrosoftExcel"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="Экспорт Excel" />
                             </StackPanel>
                         </Button>
 
                         <Button Command="{Binding ClearResultsCommand}"
-                              Style="{StaticResource MaterialDesignOutlinedButton}">
+                                Style="{StaticResource MaterialDesignOutlinedButton}">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Refresh" 
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,8,0"/>
-                                <TextBlock Text="Очистить"/>
+                                <materialDesign:PackIcon Kind="Refresh"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="Очистить" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
 
-                    <!-- Статистика -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="{DynamicResource MaterialDesignDivider}" 
-                              Width="1" 
-                              Margin="12,0"/>
+                    <!-- Вторая строка: Фильтры и поиск -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
-                            <materialDesign:PackIcon Kind="FileDocument" 
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding TotalFiles}" 
-                                     VerticalAlignment="Center"
-                                     FontWeight="SemiBold"/>
+                        <!-- Фильтры и поиск -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+
+                            <!-- Фильтр по статусу -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <materialDesign:PackIcon Kind="Filter"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0"
+                                                         Foreground="{DynamicResource PrimaryHueMidBrush}" />
+                                <TextBlock Text="Статус:"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"
+                                           FontWeight="SemiBold" />
+                                <ComboBox ItemsSource="{Binding StatusFilterOptions}"
+                                          SelectedItem="{Binding SelectedStatusFilter}"
+                                          Width="150"
+                                          materialDesign:HintAssist.Hint="Все статусы"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}" />
+                            </StackPanel>
+
+                            <!-- Фильтр по разделу -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <materialDesign:PackIcon Kind="FolderMultiple"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0"
+                                                         Foreground="{DynamicResource PrimaryHueMidBrush}" />
+                                <TextBlock Text="Раздел:"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"
+                                           FontWeight="SemiBold" />
+                                <ComboBox ItemsSource="{Binding SectionFilterOptions}"
+                                          SelectedItem="{Binding SelectedSectionFilter}"
+                                          Width="250"
+                                          materialDesign:HintAssist.Hint="Все разделы"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}" />
+                            </StackPanel>
+
+                            <!-- Поиск -->
+                            <Grid Width="300">
+                                <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="Поиск по файлам, разделам, подписям..."
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Padding="8,8,36,8">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Escape" Command="{Binding ClearSearchCommand}" />
+                                    </TextBox.InputBindings>
+                                </TextBox>
+
+                                <!-- Иконка поиска -->
+                                <materialDesign:PackIcon Kind="Magnify"
+                                                         HorizontalAlignment="Right"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0"
+                                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                         IsHitTestVisible="False"
+                                                         Visibility="{Binding SearchText, Converter={StaticResource InverseBooleanConverter}}" />
+
+                                <!-- Кнопка очистки поиска -->
+                                <Button Command="{Binding ClearSearchCommand}"
+                                        Style="{StaticResource MaterialDesignFlatButton}"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Width="30" Height="30"
+                                        Padding="0"
+                                        Visibility="{Binding SearchText, Converter={StaticResource StringToVisibilityConverter}}">
+                                    <materialDesign:PackIcon Kind="Close" Width="16" Height="16" />
+                                </Button>
+                            </Grid>
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
-                            <materialDesign:PackIcon Kind="CheckCircle" 
-                                                   Foreground="#4CAF50"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding SuccessCount}" 
-                                     VerticalAlignment="Center"
-                                     Foreground="#4CAF50"
-                                     FontWeight="SemiBold"/>
-                        </StackPanel>
+                        <!-- Статистика -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Background="{DynamicResource MaterialDesignDivider}"
+                                    Width="1"
+                                    Margin="12,0" />
 
-                        <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
-                            <materialDesign:PackIcon Kind="AlertCircle" 
-                                                   Foreground="#FF9800"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding WarningCount}" 
-                                     VerticalAlignment="Center"
-                                     Foreground="#FF9800"
-                                     FontWeight="SemiBold"/>
-                        </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <materialDesign:PackIcon Kind="FileDocument"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding TotalFiles}"
+                                           VerticalAlignment="Center"
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
-                            <materialDesign:PackIcon Kind="CloseCircle" 
-                                                   Foreground="#F44336"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding ErrorCount}" 
-                                     VerticalAlignment="Center"
-                                     Foreground="#F44336"
-                                     FontWeight="SemiBold"/>
-                        </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <materialDesign:PackIcon Kind="CheckCircle"
+                                                         Foreground="#4CAF50"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding SuccessCount}"
+                                           VerticalAlignment="Center"
+                                           Foreground="#4CAF50"
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
 
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="InformationOutline" 
-                                                   Foreground="#2196F3"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,8,0"/>
-                            <TextBlock Text="{Binding InfoCount}" 
-                                     VerticalAlignment="Center"
-                                     Foreground="#2196F3"
-                                     FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <materialDesign:PackIcon Kind="AlertCircle"
+                                                         Foreground="#FF9800"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding WarningCount}"
+                                           VerticalAlignment="Center"
+                                           Foreground="#FF9800"
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <materialDesign:PackIcon Kind="CloseCircle"
+                                                         Foreground="#F44336"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding ErrorCount}"
+                                           VerticalAlignment="Center"
+                                           Foreground="#F44336"
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="InformationOutline"
+                                                         Foreground="#2196F3"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding InfoCount}"
+                                           VerticalAlignment="Center"
+                                           Foreground="#2196F3"
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
+                    </Grid>
                 </Grid>
             </materialDesign:Card>
 
@@ -361,78 +425,79 @@
             <materialDesign:Card Grid.Row="2">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
                     <!-- Заголовок результатов -->
-                    <Border Grid.Row="0" 
-                          Background="{DynamicResource MaterialDesignDivider}"
-                          Padding="16,12">
-                        <TextBlock Text="Результаты проверки" 
-                                 FontSize="16" 
-                                 FontWeight="SemiBold"/>
+                    <Border Grid.Row="0"
+                            Background="{DynamicResource MaterialDesignDivider}"
+                            Padding="16,12">
+                        <TextBlock Text="Результаты проверки"
+                                   FontSize="16"
+                                   FontWeight="SemiBold" />
                     </Border>
 
                     <!-- Список результатов -->
                     <DataGrid Grid.Row="1"
-                            ItemsSource="{Binding CheckResults}"
-                            SelectedItem="{Binding SelectedResult}"
-                            AutoGenerateColumns="False"
-                            CanUserAddRows="False"
-                            CanUserDeleteRows="False"
-                            IsReadOnly="True"
-                            SelectionMode="Single"
-                            GridLinesVisibility="Horizontal"
-                            HeadersVisibility="Column"
-                            CanUserSortColumns="True"
-                            materialDesign:DataGridAssist.CellPadding="13 8 8 8"
-                            materialDesign:DataGridAssist.ColumnHeaderPadding="8">
+                              ItemsSource="{Binding CheckResults}"
+                              SelectedItem="{Binding SelectedResult}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              CanUserSortColumns="True"
+                              materialDesign:DataGridAssist.CellPadding="13 8 8 8"
+                              materialDesign:DataGridAssist.ColumnHeaderPadding="8">
 
                         <DataGrid.Columns>
                             <!-- Статус -->
                             <DataGridTemplateColumn Header="Статус" Width="80">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <materialDesign:PackIcon Kind="{Binding Status, Converter={StaticResource StatusToIconConverter}}"
-                                                               Foreground="{Binding Status, Converter={StaticResource StatusToColorConverter}}"
-                                                               Width="24" Height="24"
-                                                               HorizontalAlignment="Center"/>
+                                        <materialDesign:PackIcon
+                                            Kind="{Binding Status, Converter={StaticResource StatusToIconConverter}}"
+                                            Foreground="{Binding Status, Converter={StaticResource StatusToColorConverter}}"
+                                            Width="24" Height="24"
+                                            HorizontalAlignment="Center" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Header="Раздел" 
-                                Binding="{Binding DocName}"
-                                Width="250">
+                            <DataGridTextColumn Header="Раздел"
+                                                Binding="{Binding DocName}"
+                                                Width="250">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                        <Setter Property="TextWrapping" Value="Wrap"/>
-                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryHueMidBrush}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                        <Setter Property="TextWrapping" Value="Wrap" />
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryHueMidBrush}" />
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
 
                             <!-- Имя файла -->
-                            <DataGridTextColumn Header="Файл" 
-                                              Binding="{Binding FileName}"
-                                              Width="300">
+                            <DataGridTextColumn Header="Файл"
+                                                Binding="{Binding FileName}"
+                                                Width="300">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="TextWrapping" Value="Wrap"/>
-                                        <Setter Property="Margin" Value="0,4"/>
+                                        <Setter Property="TextWrapping" Value="Wrap" />
+                                        <Setter Property="Margin" Value="0,4" />
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <!-- Сообщение -->
-                            <DataGridTextColumn Header="Результат" 
-                                              Binding="{Binding Message}"
-                                              Width="*">
+                            <DataGridTextColumn Header="Результат"
+                                                Binding="{Binding Message}"
+                                                Width="*">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="TextWrapping" Value="Wrap"/>
-                                        <Setter Property="Margin" Value="0,4"/>
+                                        <Setter Property="TextWrapping" Value="Wrap" />
+                                        <Setter Property="Margin" Value="0,4" />
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
@@ -441,12 +506,13 @@
                             <DataGridTemplateColumn Header="Действия" Width="120">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Command="{Binding DataContext.OpenFileLocationCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                              CommandParameter="{Binding}"
-                                              Style="{StaticResource MaterialDesignFlatButton}"
-                                              Visibility="{Binding FileFound, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                              ToolTip="Открыть в проводнике">
-                                            <materialDesign:PackIcon Kind="FolderOpen"/>
+                                        <Button
+                                            Command="{Binding DataContext.OpenFileLocationCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource MaterialDesignFlatButton}"
+                                            Visibility="{Binding FileFound, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                            ToolTip="Открыть в проводнике">
+                                            <materialDesign:PackIcon Kind="FolderOpen" />
                                         </Button>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -455,58 +521,58 @@
                     </DataGrid>
 
                     <!-- Индикатор загрузки -->
-                    <Grid Grid.Row="1" 
+                    <Grid Grid.Row="1"
                           Background="#80000000"
                           Visibility="{Binding IsChecking, Converter={StaticResource BooleanToVisibilityConverter}}"
                           Panel.ZIndex="999">
-                        <StackPanel HorizontalAlignment="Center" 
+                        <StackPanel HorizontalAlignment="Center"
                                     VerticalAlignment="Center">
-                
+
                             <!-- Круговой прогресс-бар -->
                             <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
                                          Value="{Binding ProgressValue}"
                                          Maximum="{Binding ProgressMax}"
                                          IsIndeterminate="False"
                                          Width="80" Height="80"
-                                         Foreground="#CDDC39"/>
-                
+                                         Foreground="#CDDC39" />
+
                             <!-- Процент -->
-                            <TextBlock Text="{Binding ProgressValue, StringFormat={}{0}%}" 
+                            <TextBlock Text="{Binding ProgressValue, StringFormat={}{0}%}"
                                        Foreground="White"
                                        FontSize="24"
                                        FontWeight="Bold"
                                        HorizontalAlignment="Center"
-                                       Margin="0,-60,0,0"/>
-                
+                                       Margin="0,-60,0,0" />
+
                             <!-- Текст статуса -->
-                            <TextBlock Text="{Binding ProgressText}" 
+                            <TextBlock Text="{Binding ProgressText}"
                                        Foreground="White"
                                        FontSize="14"
                                        Margin="0,70,0,0"
                                        HorizontalAlignment="Center"
                                        TextAlignment="Center"
                                        MaxWidth="300"
-                                       TextWrapping="Wrap"/>
+                                       TextWrapping="Wrap" />
                         </StackPanel>
                     </Grid>
 
                     <!-- Сообщение об отсутствии результатов -->
                     <Border Grid.Row="1"
-                          Visibility="{Binding CheckResults.Count, Converter={StaticResource ZeroToVisibilityConverter}}"
-                          Background="{DynamicResource MaterialDesignPaper}">
-                        <StackPanel HorizontalAlignment="Center" 
-                                  VerticalAlignment="Center">
-                            <materialDesign:PackIcon Kind="FileDocumentOutline" 
-                                                   Width="64" Height="64"
-                                                   Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                                   Margin="0,0,0,16"/>
-                            <TextBlock Text="Нет результатов проверки" 
-                                     FontSize="16"
-                                     Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                            <TextBlock Text="Выберите XML файл и директорию, затем нажмите 'Выполнить проверку'" 
-                                     FontSize="12"
-                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                     Margin="0,8,0,0"/>
+                            Visibility="{Binding CheckResults.Count, Converter={StaticResource ZeroToVisibilityConverter}}"
+                            Background="{DynamicResource MaterialDesignPaper}">
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="FileDocumentOutline"
+                                                     Width="64" Height="64"
+                                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                     Margin="0,0,0,16" />
+                            <TextBlock Text="Нет результатов проверки"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource MaterialDesignBodyLight}" />
+                            <TextBlock Text="Выберите XML файл и директорию, затем нажмите 'Выполнить проверку'"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                       Margin="0,8,0,0" />
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -514,15 +580,15 @@
         </Grid>
 
         <!-- Статус бар -->
-        <materialDesign:ColorZone Grid.Row="2" 
-                                Mode="PrimaryMid" 
-                                Padding="16,8">
+        <materialDesign:ColorZone Grid.Row="2"
+                                  Mode="PrimaryMid"
+                                  Padding="16,8">
             <DockPanel>
-                <materialDesign:PackIcon Kind="Information" 
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
-                <TextBlock Text="{Binding StatusMessage}" 
-                         VerticalAlignment="Center"/>
+                <materialDesign:PackIcon Kind="Information"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,8,0" />
+                <TextBlock Text="{Binding StatusMessage}"
+                           VerticalAlignment="Center" />
             </DockPanel>
         </materialDesign:ColorZone>
     </Grid>
