@@ -233,10 +233,27 @@
 
                     <!-- Кнопки действий -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
+                            <materialDesign:PackIcon Kind="Filter" 
+                                                     VerticalAlignment="Center"
+                                                     Margin="0,0,8,0"
+                                                     Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                            <TextBlock Text="Фильтр:" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"
+                                       FontWeight="SemiBold"/>
+                            <ComboBox ItemsSource="{Binding StatusFilterOptions}"
+                                      SelectedItem="{Binding SelectedStatusFilter}"
+                                      Width="160"
+                                      materialDesign:HintAssist.Hint="Статус"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                        </StackPanel>
+                        
                         <Button Command="{Binding CheckFilesCommand}"
-                              Style="{StaticResource MaterialDesignRaisedButton}"
-                              IsEnabled="{Binding IsChecking, Converter={StaticResource InverseBooleanConverter}}"
-                              Margin="0,0,12,0">
+                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                IsEnabled="{Binding IsChecking, Converter={StaticResource InverseBooleanConverter}}"
+                                Margin="0,0,12,0">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="PlayCircle" 
                                                        VerticalAlignment="Center"
@@ -368,6 +385,7 @@
                             SelectionMode="Single"
                             GridLinesVisibility="Horizontal"
                             HeadersVisibility="Column"
+                            CanUserSortColumns="True"
                             materialDesign:DataGridAssist.CellPadding="13 8 8 8"
                             materialDesign:DataGridAssist.ColumnHeaderPadding="8">
 
@@ -390,6 +408,7 @@
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="TextWrapping" Value="Wrap"/>
                                         <Setter Property="Foreground" Value="{DynamicResource PrimaryHueMidBrush}"/>
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
