@@ -20,6 +20,8 @@
             <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <local:ValidationResultColorConverter x:Key="ValidationResultColorConverter" />
             <local:ErrorVisibilityConverter x:Key="ErrorVisibilityConverter" />
+            <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+            <local:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         </ResourceDictionary>   
     </Application.Resources>
 </Application>

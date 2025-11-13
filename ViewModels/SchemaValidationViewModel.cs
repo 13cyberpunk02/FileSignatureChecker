@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -17,21 +18,30 @@ namespace FileSignatureChecker.ViewModels;
 public partial class SchemaValidationViewModel : ObservableObject
 {
     private readonly XmlValidationService _validationService;
-    
-    [ObservableProperty]
-    private string _fileName;
-        
-    [ObservableProperty]
-    private bool _isFileNameVisible;
-        
-    [ObservableProperty]
-    private string _validationResultText;
-        
-    [ObservableProperty]
-    private bool _isValidationSuccess;
-        
-    [ObservableProperty]
-    private bool _isLoading;
+
+    [ObservableProperty] private string _fileName;
+
+    [ObservableProperty] private bool _isFileNameVisible;
+
+    [ObservableProperty] private string _validationResultText;
+
+    [ObservableProperty] private string _schemaFileName;
+
+    [ObservableProperty] private string _schemaVersion;
+
+    [ObservableProperty] private string _errorLocation;
+
+    [ObservableProperty] private string _errorPath;
+
+    [ObservableProperty] private string _errorDescription;
+
+    [ObservableProperty] private string _errorDetails;
+
+    [ObservableProperty] private string _currentValue;
+
+    [ObservableProperty] private bool _isValidationSuccess;
+
+    [ObservableProperty] private bool _isLoading;
 
     public SchemaValidationViewModel()
     {
@@ -41,7 +51,7 @@ public partial class SchemaValidationViewModel : ObservableObject
         IsValidationSuccess = false;
         IsLoading = false;
     }
-    
+
     /// <summary>
     /// Команда загрузки файла
     /// [RelayCommand] автоматически создает свойство LoadFileCommand типа IAsyncRelayCommand
@@ -62,7 +72,7 @@ public partial class SchemaValidationViewModel : ObservableObject
             await ValidateFileAsync(openFileDialog.FileName);
         }
     }
-    
+
     /// <summary>
     /// Валидирует выбранный файл
     /// </summary>
@@ -71,15 +81,15 @@ public partial class SchemaValidationViewModel : ObservableObject
         try
         {
             IsLoading = true;
-                
+
             FileName = $"Файл: {filePath}";
             IsFileNameVisible = true;
-                
+
             ValidationResultText = "⏳ Идет проверка файла...";
             IsValidationSuccess = false;
 
             var result = await _validationService.ValidateFileAsync(filePath);
-         
+
             DisplayValidationResult(result);
         }
         catch (Exception ex)
@@ -92,7 +102,7 @@ public partial class SchemaValidationViewModel : ObservableObject
             IsLoading = false;
         }
     }
-    
+
     /// <summary>
     /// Отображает результат валидации
     /// </summary>
@@ -102,27 +112,127 @@ public partial class SchemaValidationViewModel : ObservableObject
 
         if (result.IsValid)
         {
-            ValidationResultText = 
-                $"✅ Файл прошел валидацию успешно!\n\n" +
-                $"📄 Используемая схема: {result.SchemaFileName}\n" +
-                $"📋 Версия схемы: {result.SchemaVersion ?? "не указана"}";
+            ValidationResultText = "Файл прошел валидацию успешно!";
+            SchemaFileName = result.SchemaFileName;
+            SchemaVersion = result.SchemaVersion ?? "не указана";
+
+            ErrorLocation = null;
+            ErrorPath = null;
+            ErrorDescription = null;
+            ErrorDetails = null;
+            CurrentValue = null;
         }
         else
         {
-            var errorText = $"❌ Валидация не пройдена\n\n";
+            SchemaFileName = result.SchemaFileName;
+            SchemaVersion = result.SchemaVersion ?? "не указана";
+            ValidationResultText = $"Проверка по схеме: {SchemaFileName} (версия {SchemaVersion})";
 
-            if (!string.IsNullOrEmpty(result.SchemaFileName))
-            {
-                errorText += $"📄 Проверка по схеме: {result.SchemaFileName}\n";
-                errorText += $"📋 Версия: {result.SchemaVersion ?? "не указана"}\n\n";
-            }
-
-            errorText += $"🔍 Описание проблемы:\n{result.ErrorMessage}";
-
-            ValidationResultText = errorText;
+            ParseErrorMessage(result.ErrorMessage);
         }
     }
-    
+
+    private void ParseErrorMessage(string errorMessage)
+    {
+        var lines = errorMessage.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+        var locationBuilder = new StringBuilder();
+        var pathBuilder = new StringBuilder();
+        var descriptionBuilder = new StringBuilder();
+        var detailsBuilder = new StringBuilder();
+        var valueBuilder = new StringBuilder();
+
+        var currentSection = "";
+
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.Trim();
+
+            // Пропускаем заголовки
+            if (trimmedLine.StartsWith("═══")) continue;
+            if (trimmedLine.StartsWith("Найдены")) continue;
+
+            // Определяем секцию
+            if (trimmedLine.Contains("📍") && trimmedLine.Contains("Расположение"))
+            {
+                currentSection = "location";
+                continue;
+            }
+            else if (trimmedLine.Contains("📂") && trimmedLine.Contains("Путь"))
+            {
+                currentSection = "path";
+                continue;
+            }
+            else if (trimmedLine.Contains("❌") && trimmedLine.Contains("Описание"))
+            {
+                currentSection = "description";
+                continue;
+            }
+            else if (trimmedLine.Contains("⚙️") && trimmedLine.Contains("Требования"))
+            {
+                currentSection = "details";
+                continue;
+            }
+            else if (trimmedLine.Contains("💡"))
+            {
+                currentSection = "value";
+                var match = System.Text.RegularExpressions.Regex.Match(trimmedLine, @"['\""](.+?)['\""']");
+                if (match.Success)
+                {
+                    valueBuilder.Append(match.Groups[1].Value);
+                }
+
+                continue;
+            }
+
+            // Добавляем в секцию с ПЕРЕНОСАМИ СТРОК
+            switch (currentSection)
+            {
+                case "location":
+                    if (!string.IsNullOrWhiteSpace(trimmedLine))
+                    {
+                        if (locationBuilder.Length > 0) locationBuilder.AppendLine();
+                        locationBuilder.Append(trimmedLine);
+                    }
+
+                    break;
+                case "path":
+                    if (!string.IsNullOrWhiteSpace(trimmedLine))
+                    {
+                        var cleanLine = trimmedLine.Replace("→", "").Trim();
+                        if (!string.IsNullOrWhiteSpace(cleanLine))
+                        {
+                            if (pathBuilder.Length > 0) pathBuilder.AppendLine();
+                            pathBuilder.Append("→ " + cleanLine);
+                        }
+                    }
+
+                    break;
+                case "description":
+                    if (!string.IsNullOrWhiteSpace(trimmedLine))
+                    {
+                        if (descriptionBuilder.Length > 0) descriptionBuilder.AppendLine();
+                        descriptionBuilder.Append(trimmedLine);
+                    }
+
+                    break;
+                case "details":
+                    if (!string.IsNullOrWhiteSpace(trimmedLine))
+                    {
+                        if (detailsBuilder.Length > 0) detailsBuilder.AppendLine();
+                        detailsBuilder.Append(trimmedLine);
+                    }
+
+                    break;
+            }
+        }
+
+        ErrorLocation = locationBuilder.Length > 0 ? locationBuilder.ToString() : null;
+        ErrorPath = pathBuilder.Length > 0 ? pathBuilder.ToString() : null;
+        ErrorDescription = descriptionBuilder.Length > 0 ? descriptionBuilder.ToString() : null;
+        ErrorDetails = detailsBuilder.Length > 0 ? detailsBuilder.ToString() : null;
+        CurrentValue = valueBuilder.Length > 0 ? valueBuilder.ToString() : null;
+    }
+
     /// <summary>
     /// Команда закрытия окна
     /// [RelayCommand] создает свойство CloseCommand

@@ -10,7 +10,7 @@ namespace FileSignatureChecker.Converters
         {
             if (value is bool boolValue)
                 return !boolValue;
-            return true;
+            return false;
         }
 
         public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
