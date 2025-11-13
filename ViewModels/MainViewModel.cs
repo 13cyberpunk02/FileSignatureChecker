@@ -214,6 +214,28 @@ namespace FileSignatureChecker.ViewModels
                 IsChecking = false;
             }
         }
+        
+        /// <summary>
+        /// Команда для открытия окна проверки схемы
+        /// [RelayCommand] автоматически создает свойство OpenSchemaValidationCommand
+        /// Это свойство можно привязать к кнопке в XAML
+        /// </summary>
+        [RelayCommand]
+        private void OpenSchemaValidation()
+        {
+            var mainWindow = Application.Current.MainWindow;
+            
+            mainWindow?.Hide();
+            
+            var validationWindow = new SchemaValidationView();
+            
+            validationWindow.Closed += (s, args) =>
+            {
+                mainWindow?.Show();
+            };
+            
+            validationWindow.Show();
+        }
 
         [RelayCommand]
         private void ClearResults()

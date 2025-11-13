@@ -14,10 +14,12 @@
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Converters -->
-            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <local:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
             <local:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
             <local:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
-        </ResourceDictionary>
+            <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <local:ValidationResultColorConverter x:Key="ValidationResultColorConverter" />
+            <local:ErrorVisibilityConverter x:Key="ErrorVisibilityConverter" />
+        </ResourceDictionary>   
     </Application.Resources>
 </Application>

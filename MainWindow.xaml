@@ -279,6 +279,24 @@
                                 <TextBlock Text="Очистить" />
                             </StackPanel>
                         </Button>
+                        
+                        <Button Command="{Binding OpenSchemaValidationCommand}"
+                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                Margin="10"
+                                VerticalAlignment="Top"
+                                HorizontalAlignment="Left">
+                            <Button.Content>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FileCheck" 
+                                                             VerticalAlignment="Center" 
+                                                             Margin="0,0,10,0"
+                                                             Width="24"
+                                                             Height="24"/>
+                                    <TextBlock Text="Проверка файла на соответствие схемы Минстроя" 
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button.Content>
+                        </Button>
                     </StackPanel>
 
                     <!-- Вторая строка: Фильтры и поиск -->
