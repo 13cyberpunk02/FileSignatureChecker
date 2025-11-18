@@ -19,7 +19,11 @@ namespace FileSignatureChecker.Services
 
         public XmlValidationService(string schemaDirectory = null)
         {
-            _schemaDirectory = schemaDirectory ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
+            var baseDirectory = Environment.ProcessPath ?? 
+                                System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+            var exeDir =  Path.GetDirectoryName(baseDirectory);
+            _schemaDirectory = exeDir != null ? Path.Combine(exeDir, "Assets") : schemaDirectory;
+            
             LoadAvailableSchemas();
         }
 
@@ -34,7 +38,7 @@ namespace FileSignatureChecker.Services
             }
 
             var xsdFiles = Directory.GetFiles(_schemaDirectory, "*.xsd");
-
+            
             foreach (var xsdFile in xsdFiles)
             {
                 try
@@ -58,7 +62,7 @@ namespace FileSignatureChecker.Services
             {
                 var doc = XDocument.Load(xsdFilePath);
                 var ns = XNamespace.Get("http://www.w3.org/2001/XMLSchema");
-
+                
                 var schemaInfo = new XsdSchemaInfo
                 {
                     FilePath = xsdFilePath,
@@ -112,11 +116,23 @@ namespace FileSignatureChecker.Services
                     return new ValidationResult
                     {
                         IsValid = false,
-                        ErrorMessage = "❌ Не удалось прочитать файл.\n\n" +
-                                       "Убедитесь, что:\n" +
-                                       "• Файл является корректным XML или GGE документом\n" +
-                                       "• Файл не поврежден\n" +
-                                       "• У вас есть права на чтение файла"
+                        Errors = new List<ValidationError>
+                        {
+                            new ValidationError
+                            {
+                                ErrorNumber = 1,
+                                Description = "Не удалось прочитать файл.\n\n" +
+                                    "Убедитесь, что:\n" +
+                                    "• Файл является корректным XML или GGE документом\n" +
+                                    "• Файл не поврежден\n" +
+                                    "• У вас есть права на чтение файла",
+                                FullMessage = "❌ Не удалось прочитать файл.\n\n" +
+                                    "Убедитесь, что:\n" +
+                                    "• Файл является корректным XML или GGE документом\n" +
+                                    "• Файл не поврежден\n" +
+                                    "• У вас есть права на чтение файла"
+                            }
+                        }
                     };
                 }
 
@@ -127,13 +143,27 @@ namespace FileSignatureChecker.Services
                     return new ValidationResult
                     {
                         IsValid = false,
-                        ErrorMessage = $"❌ Не найдена подходящая XSD схема для валидации.\n\n" +
-                                       $"📋 Файл требует схему:\n" +
-                                       $"   • Имя схемы: {fileInfo.SchemaLocation}\n" +
-                                       $"   • Версия: {fileInfo.Version}\n\n" +
-                                       $"💡 Что нужно сделать:\n" +
-                                       $"   • Поместите нужный XSD файл в папку: {_schemaDirectory}\n" +
-                                       $"   • Убедитесь, что версия в XSD совпадает с версией в файле"
+                        Errors = new List<ValidationError>
+                        {
+                            new ValidationError
+                            {
+                                ErrorNumber = 1,
+                                Description = $"Не найдена подходящая XSD схема для валидации.\n\n" +
+                                    $"📋 Файл требует схему:\n" +
+                                    $"   • Имя схемы: {fileInfo.SchemaLocation}\n" +
+                                    $"   • Версия: {fileInfo.Version}\n\n" +
+                                    $"💡 Что нужно сделать:\n" +
+                                    $"   • Поместите нужный XSD файл в папку: {_schemaDirectory}\n" +
+                                    $"   • Убедитесь, что версия в XSD совпадает с версией в файле",
+                                FullMessage = $"❌ Не найдена подходящая XSD схема для валидации.\n\n" +
+                                    $"📋 Файл требует схему:\n" +
+                                    $"   • Имя схемы: {fileInfo.SchemaLocation}\n" +
+                                    $"   • Версия: {fileInfo.Version}\n\n" +
+                                    $"💡 Что нужно сделать:\n" +
+                                    $"   • Поместите нужный XSD файл в папку: {_schemaDirectory}\n" +
+                                    $"   • Убедитесь, что версия в XSD совпадает с версией в файле"
+                            }
+                        }
                     };
                 }
 
@@ -142,12 +172,12 @@ namespace FileSignatureChecker.Services
                 var xmlDoc = XDocument.Load(filePath, LoadOptions.SetLineInfo); // ВАЖНО: SetLineInfo для номеров строк
 
                 var validationErrors = new List<DetailedValidationError>();
-
+                
                 var settings = new XmlReaderSettings();
                 settings.Schemas.Add(null, matchingSchema.FilePath);
                 settings.ValidationType = ValidationType.Schema;
                 settings.ValidationFlags |= XmlSchemaValidationFlags.ReportValidationWarnings;
-
+                
                 settings.ValidationEventHandler += (sender, args) =>
                 {
                     validationErrors.Add(new DetailedValidationError
@@ -160,9 +190,7 @@ namespace FileSignatureChecker.Services
 
                 using (var reader = XmlReader.Create(filePath, settings))
                 {
-                    while (reader.Read())
-                    {
-                    }
+                    while (reader.Read()) { }
                 }
 
                 if (validationErrors.Count == 0)
@@ -171,41 +199,36 @@ namespace FileSignatureChecker.Services
                     {
                         IsValid = true,
                         SchemaFileName = matchingSchema.FileName,
-                        SchemaVersion = string.IsNullOrEmpty(matchingSchema.Version)
-                            ? matchingSchema.FixedSchemaVersion
+                        SchemaVersion = string.IsNullOrEmpty(matchingSchema.Version) 
+                            ? matchingSchema.FixedSchemaVersion 
                             : matchingSchema.Version,
                         SchemaPath = matchingSchema.FilePath
                     };
                 }
                 else
                 {
-                    var errorMessage = new StringBuilder();
-                    errorMessage.AppendLine("Найдены следующие проблемы:\n");
-
+                    var errors = new List<ValidationError>();
+                    
                     for (int i = 0; i < validationErrors.Count; i++)
                     {
-                        var detailedError = TranslateValidationErrorDetailed(
-                            validationErrors[i],
-                            xsdDoc,
-                            xmlDoc,
+                        var detailedErrorText = TranslateValidationErrorDetailed(
+                            validationErrors[i], 
+                            xsdDoc, 
+                            xmlDoc, 
                             filePath);
-
-                        errorMessage.AppendLine($"═══ Ошибка {i + 1} ═══");
-                        errorMessage.AppendLine(detailedError);
-
-                        if (i < validationErrors.Count - 1)
-                        {
-                            errorMessage.AppendLine();
-                        }
+                        
+                        // Парсим текст ошибки в структурированный объект
+                        var error = ParseErrorToObject(detailedErrorText, i + 1);
+                        errors.Add(error);
                     }
 
                     return new ValidationResult
                     {
                         IsValid = false,
-                        ErrorMessage = errorMessage.ToString(),
+                        Errors = errors,
                         SchemaFileName = matchingSchema.FileName,
-                        SchemaVersion = string.IsNullOrEmpty(matchingSchema.Version)
-                            ? matchingSchema.FixedSchemaVersion
+                        SchemaVersion = string.IsNullOrEmpty(matchingSchema.Version) 
+                            ? matchingSchema.FixedSchemaVersion 
                             : matchingSchema.Version,
                         SchemaPath = matchingSchema.FilePath
                     };
@@ -216,8 +239,16 @@ namespace FileSignatureChecker.Services
                 return new ValidationResult
                 {
                     IsValid = false,
-                    ErrorMessage =
-                        $"❌ Произошла непредвиденная ошибка:\n\n{ex.Message}\n\nStack trace:\n{ex.StackTrace}"
+                    Errors = new List<ValidationError>
+                    {
+                        new ValidationError
+                        {
+                            ErrorNumber = 1,
+                            Description = $"Произошла непредвиденная ошибка:\n\n{ex.Message}",
+                            Details = $"Stack trace:\n{ex.StackTrace}",
+                            FullMessage = $"❌ Произошла непредвиденная ошибка:\n\n{ex.Message}\n\nStack trace:\n{ex.StackTrace}"
+                        }
+                    }
                 };
             }
         }
@@ -226,8 +257,8 @@ namespace FileSignatureChecker.Services
         /// Детальный перевод ошибки валидации с контекстом из XSD
         /// </summary>
         private string TranslateValidationErrorDetailed(
-            DetailedValidationError error,
-            XDocument xsdDoc,
+            DetailedValidationError error, 
+            XDocument xsdDoc, 
             XDocument xmlDoc,
             string xmlFilePath)
         {
@@ -239,7 +270,7 @@ namespace FileSignatureChecker.Services
             {
                 // Извлекаем имя элемента с ошибкой из сообщения
                 var elementNameMatch = Regex.Match(message, @"'(\w+)'");
-
+                
                 if (!elementNameMatch.Success)
                 {
                     return $"⚠️ {message}";
@@ -249,7 +280,7 @@ namespace FileSignatureChecker.Services
 
                 // Находим элемент в XML по номеру строки
                 XElement errorElement = FindElementAtLine(xmlDoc, error.LineNumber, errorElementName);
-
+                
                 if (errorElement == null)
                 {
                     return $"⚠️ Ошибка в элементе '{errorElementName}' (строка {error.LineNumber})\n{message}";
@@ -257,14 +288,14 @@ namespace FileSignatureChecker.Services
 
                 // Строим путь от корня до элемента с ошибкой
                 var path = BuildElementPath(errorElement);
-
+                
                 result.AppendLine($"📍 Расположение ошибки:");
                 result.AppendLine($"   Строка {error.LineNumber} в файле");
                 result.AppendLine();
 
                 // Получаем описания для каждого уровня пути
                 result.AppendLine($"📂 Путь к проблемному элементу:");
-
+                
                 var pathDescriptions = new List<string>();
                 foreach (var pathElement in path)
                 {
@@ -280,14 +311,14 @@ namespace FileSignatureChecker.Services
                         pathDescriptions.Add($"   → {pathElement}");
                     }
                 }
-
+                
                 result.AppendLine(string.Join("\n", pathDescriptions));
                 result.AppendLine();
 
                 // Анализируем тип ошибки и даем детальное объяснение
                 result.AppendLine($"❌ Описание проблемы:");
-
-                if (message.IndexOf("pattern constraint", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                
+                if (message.IndexOf("pattern constraint", StringComparison.OrdinalIgnoreCase) >= 0 || 
                     message.Contains("шаблон"))
                 {
                     var patternExplanation = ExplainPatternError(errorElementName, errorElement, xsdDoc, ns);
@@ -318,6 +349,7 @@ namespace FileSignatureChecker.Services
                     result.AppendLine();
                     result.AppendLine($"💡 Текущее значение: '{errorElement.Value}'");
                 }
+
             }
             catch (Exception ex)
             {
@@ -330,12 +362,111 @@ namespace FileSignatureChecker.Services
         /// <summary>
         /// Объясняет ошибку с pattern (регулярное выражение)
         /// </summary>
+        /// <summary>
+        /// Парсит текстовое сообщение об ошибке в структурированный объект
+        /// </summary>
+        private ValidationError ParseErrorToObject(string errorText, int errorNumber)
+        {
+            var error = new ValidationError
+            {
+                ErrorNumber = errorNumber,
+                FullMessage = errorText
+            };
+
+            var lines = errorText.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            var locationBuilder = new StringBuilder();
+            var pathBuilder = new StringBuilder();
+            var descriptionBuilder = new StringBuilder();
+            var detailsBuilder = new StringBuilder();
+            var currentSection = "";
+
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.Trim();
+
+                if (trimmedLine.StartsWith("═══")) continue;
+
+                if (trimmedLine.Contains("📍") && trimmedLine.Contains("Расположение"))
+                {
+                    currentSection = "location";
+                    continue;
+                }
+                else if (trimmedLine.Contains("📂") && trimmedLine.Contains("Путь"))
+                {
+                    currentSection = "path";
+                    continue;
+                }
+                else if (trimmedLine.Contains("❌") && trimmedLine.Contains("Описание"))
+                {
+                    currentSection = "description";
+                    continue;
+                }
+                else if (trimmedLine.Contains("⚙️") && trimmedLine.Contains("Требования"))
+                {
+                    currentSection = "details";
+                    continue;
+                }
+                else if (trimmedLine.Contains("💡"))
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(trimmedLine, @"['\""](.+?)['\""']");
+                    if (match.Success)
+                    {
+                        error.CurrentValue = match.Groups[1].Value;
+                    }
+                    continue;
+                }
+
+                switch (currentSection)
+                {
+                    case "location":
+                        if (!string.IsNullOrWhiteSpace(trimmedLine))
+                        {
+                            if (locationBuilder.Length > 0) locationBuilder.AppendLine();
+                            locationBuilder.Append(trimmedLine);
+                        }
+                        break;
+                    case "path":
+                        if (!string.IsNullOrWhiteSpace(trimmedLine))
+                        {
+                            var cleanLine = trimmedLine.Replace("→", "").Trim();
+                            if (!string.IsNullOrWhiteSpace(cleanLine))
+                            {
+                                if (pathBuilder.Length > 0) pathBuilder.AppendLine();
+                                pathBuilder.Append("→ " + cleanLine);
+                            }
+                        }
+                        break;
+                    case "description":
+                        if (!string.IsNullOrWhiteSpace(trimmedLine))
+                        {
+                            if (descriptionBuilder.Length > 0) descriptionBuilder.AppendLine();
+                            descriptionBuilder.Append(trimmedLine);
+                        }
+                        break;
+                    case "details":
+                        if (!string.IsNullOrWhiteSpace(trimmedLine))
+                        {
+                            if (detailsBuilder.Length > 0) detailsBuilder.AppendLine();
+                            detailsBuilder.Append(trimmedLine);
+                        }
+                        break;
+                }
+            }
+
+            error.Location = locationBuilder.Length > 0 ? locationBuilder.ToString() : null;
+            error.Path = pathBuilder.Length > 0 ? pathBuilder.ToString() : null;
+            error.Description = descriptionBuilder.Length > 0 ? descriptionBuilder.ToString() : null;
+            error.Details = detailsBuilder.Length > 0 ? detailsBuilder.ToString() : null;
+
+            return error;
+        }
+
         private string ExplainPatternError(string elementName, XElement errorElement, XDocument xsdDoc, XNamespace ns)
         {
             var result = new StringBuilder();
-
+            
             var elementDescription = GetElementDescription(xsdDoc, ns, elementName);
-
+            
             if (!string.IsNullOrEmpty(elementDescription))
             {
                 result.AppendLine($"   Поле: {elementDescription}");
@@ -349,7 +480,7 @@ namespace FileSignatureChecker.Services
             {
                 XElement typeDef = null;
                 string typeName = elementDef.Attribute("type")?.Value;
-
+                
                 if (!string.IsNullOrEmpty(typeName))
                 {
                     // Тип указан через атрибут type (explanatorynote.xsd)
@@ -395,7 +526,7 @@ namespace FileSignatureChecker.Services
                         var minLength = restriction.Element(ns + "minLength")?.Attribute("value")?.Value;
                         var maxLength = restriction.Element(ns + "maxLength")?.Attribute("value")?.Value;
 
-                        if (!string.IsNullOrEmpty(pattern) || !string.IsNullOrEmpty(length) ||
+                        if (!string.IsNullOrEmpty(pattern) || !string.IsNullOrEmpty(length) || 
                             !string.IsNullOrEmpty(minLength) || !string.IsNullOrEmpty(maxLength))
                         {
                             result.AppendLine();
@@ -443,18 +574,18 @@ namespace FileSignatureChecker.Services
             {
                 var parts = pattern.Split('|');
                 var explanations = new List<string>();
-
+                
                 foreach (var part in parts)
                 {
                     var trimmed = part.Trim();
-
+                    
                     // Пустой паттерн
                     if (string.IsNullOrEmpty(trimmed))
                     {
                         explanations.Add("пустое значение");
                         continue;
                     }
-
+                    
                     // [0-9]{10} или \d{10}
                     var digitMatch = Regex.Match(trimmed, @"\{(\d+)\}");
                     if (digitMatch.Success)
@@ -463,26 +594,26 @@ namespace FileSignatureChecker.Services
                         explanations.Add($"{count} цифр");
                         continue;
                     }
-
+                    
                     explanations.Add(trimmed);
                 }
-
+                
                 return string.Join(" или ", explanations);
             }
-
+            
             // Одиночные паттерны
             if (pattern == @"\d{13}")
                 return "13 цифр";
-
+            
             if (pattern == @"\d{10}")
                 return "10 цифр";
-
+            
             if (pattern == @"\d{12}")
                 return "12 цифр";
-
+            
             if (pattern == @"\d{9}")
                 return "9 цифр";
-
+            
             // Любой паттерн с {N}
             var match = Regex.Match(pattern, @"\{(\d+)\}");
             if (match.Success)
@@ -513,7 +644,7 @@ namespace FileSignatureChecker.Services
             if (element != null)
             {
                 var documentations = element.Descendants(ns + "documentation").ToList();
-
+                
                 // Сначала ищем русскую документацию
                 var documentation = documentations
                     .FirstOrDefault(d => d.Attribute(XNamespace.Xml + "lang")?.Value == "ru");
@@ -532,17 +663,17 @@ namespace FileSignatureChecker.Services
                     {
                         return CleanDescription(textElement.Value);
                     }
-
+                    
                     // Иначе берем весь текст документации, но очищаем от links
                     var allText = documentation.Value;
-
+                    
                     // Убираем текст из <links> если он есть
                     var linksElement = documentation.Element("links");
                     if (linksElement != null)
                     {
                         allText = allText.Replace(linksElement.Value, "");
                     }
-
+                    
                     return CleanDescription(allText);
                 }
             }
@@ -557,10 +688,10 @@ namespace FileSignatureChecker.Services
         {
             if (string.IsNullOrEmpty(text))
                 return text;
-
+            
             // Убираем лишние пробелы и переносы
             text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
-
+            
             return text.Trim();
         }
 
@@ -629,7 +760,7 @@ namespace FileSignatureChecker.Services
 
                 var xsiNamespace = XNamespace.Get("http://www.w3.org/2001/XMLSchema-instance");
                 var schemaLocationAttr = root.Attribute(xsiNamespace + "noNamespaceSchemaLocation");
-
+                
                 if (schemaLocationAttr != null)
                 {
                     info.SchemaLocation = schemaLocationAttr.Value;
@@ -667,14 +798,14 @@ namespace FileSignatureChecker.Services
 
         private XsdSchemaInfo FindMatchingSchema(FileSchemaInfo fileInfo)
         {
-            var schemaByName = _availableSchemas.FirstOrDefault(s =>
+            var schemaByName = _availableSchemas.FirstOrDefault(s => 
                 s.FileName.Equals(fileInfo.SchemaLocation, StringComparison.OrdinalIgnoreCase));
 
             if (schemaByName != null)
             {
                 if (!string.IsNullOrEmpty(fileInfo.Version))
                 {
-                    if (schemaByName.Version == fileInfo.Version ||
+                    if (schemaByName.Version == fileInfo.Version || 
                         schemaByName.FixedSchemaVersion == fileInfo.Version)
                     {
                         return schemaByName;

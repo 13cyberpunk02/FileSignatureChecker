@@ -18,315 +18,341 @@
         <viewModels:SchemaValidationViewModel />
     </Window.DataContext>
 
-    <Grid Margin="20">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Заголовок -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
-            <materialDesign:PackIcon Kind="FileDocumentCheck"
-                                     Width="32"
-                                     Height="32"
-                                     VerticalAlignment="Center"
-                                     Margin="0,0,10,0"
-                                     Foreground="{DynamicResource PrimaryHueMidBrush}" />
-            <TextBlock Text="Валидация XML/GGE файлов"
-                       Style="{StaticResource MaterialDesignHeadline4TextBlock}"
-                       VerticalAlignment="Center" />
-        </StackPanel>
+        <!--  Заголовок  -->
+        <materialDesign:ColorZone
+            Grid.Row="0"
+            Padding="16"
+            materialDesign:ElevationAssist.Elevation="Dp4"
+            Mode="PrimaryMid">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <materialDesign:PackIcon
+                        Width="32"
+                        Height="32"
+                        VerticalAlignment="Center"
+                        Kind="FileDocument" />
+                    <TextBlock
+                        Margin="16,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="22"
+                        FontWeight="Medium"
+                        Text="Валидация XML/GGE файлов" />
+                </StackPanel>
+            </DockPanel>
+        </materialDesign:ColorZone>
 
-        <!-- Кнопка загрузки файла -->
-        <Button Grid.Row="1"
-                Command="{Binding LoadFileCommand}"
-                IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}"
-                Style="{StaticResource MaterialDesignRaisedButton}"
-                Height="50"
-                Margin="0,0,0,20">
-            <StackPanel Orientation="Horizontal">
-                <materialDesign:PackIcon Kind="FileUpload"
-                                         VerticalAlignment="Center"
-                                         Margin="0,0,10,0"
-                                         Width="24"
-                                         Height="24" />
-                <TextBlock Text="Загрузить файл (XML/GGE)"
-                           VerticalAlignment="Center" />
-            </StackPanel>
-        </Button>
+        <!--  Основной контент  -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="20">
 
-        <!-- Область результатов -->
-        <Border Grid.Row="2"
-                BorderBrush="{DynamicResource MaterialDesignDivider}"
-                BorderThickness="1"
-                CornerRadius="4"
-                Padding="15"
-                Background="{DynamicResource MaterialDesignCardBackground}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
-                <StackPanel>
-                    <!-- Имя файла -->
-                    <StackPanel Orientation="Horizontal"
-                                Margin="0,0,0,15"
-                                Visibility="{Binding IsFileNameVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <materialDesign:PackIcon Kind="File"
-                                                 Width="16"
-                                                 Height="16"
-                                                 VerticalAlignment="Top"
-                                                 Margin="0,2,8,0"
-                                                 Foreground="#757575" />
-                        <TextBlock Text="{Binding FileName}"
-                                   FontSize="12"
-                                   Foreground="#757575"
-                                   TextWrapping="Wrap"
-                                   FontWeight="SemiBold" />
+                <!--  Кнопка загрузки файла  -->
+                <Button
+                    Command="{Binding LoadFileCommand}"
+                    IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}"
+                    Style="{StaticResource MaterialDesignRaisedButton}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon
+                            Width="24"
+                            Height="24"
+                            Kind="Upload" />
+                        <TextBlock Margin="8,0,0,0" Text="Загрузить файл (XML/GGE)" />
                     </StackPanel>
+                </Button>
 
-                    <!-- УСПЕШНАЯ ВАЛИДАЦИЯ -->
-                    <StackPanel
-                        Visibility="{Binding IsValidationSuccess, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <materialDesign:PackIcon Kind="CheckCircle"
-                                                     Width="24"
-                                                     Height="24"
-                                                     VerticalAlignment="Top"
-                                                     Margin="0,0,10,0"
-                                                     Foreground="#4CAF50" />
-                            <TextBlock Text="Файл прошел валидацию успешно!"
-                                       FontSize="16"
-                                       FontWeight="Bold"
-                                       Foreground="#4CAF50"
-                                       VerticalAlignment="Center" />
+                <!--  Индикатор загрузки  -->
+                <ProgressBar
+                    Margin="0,10,0,0"
+                    IsIndeterminate="True"
+                    Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <!--  Имя файла  -->
+                <TextBlock
+                    Margin="0,15,0,0"
+                    FontSize="12"
+                    Foreground="Gray"
+                    Text="{Binding FileName}"
+                    TextWrapping="Wrap"
+                    Visibility="{Binding IsFileNameVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <!--  УСПЕШНАЯ ВАЛИДАЦИЯ  -->
+                <materialDesign:Card
+                    Margin="0,20,0,0"
+                    Padding="20"
+                    Visibility="{Binding IsValidationSuccess, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel>
+                        <!--  Иконка успеха  -->
+                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="48"
+                                Height="48"
+                                Foreground="#4CAF50"
+                                Kind="CheckCircle" />
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" Margin="35,0,0,5">
-                            <materialDesign:PackIcon Kind="FileDocument"
-                                                     Width="18"
-                                                     Height="18"
-                                                     VerticalAlignment="Center"
-                                                     Margin="0,0,8,0"
-                                                     Foreground="#4CAF50" />
-                            <TextBlock FontSize="13" Foreground="#4CAF50" TextWrapping="Wrap">
-                                <Run Text="Используемая схема: " />
-                                <Run Text="{Binding SchemaFileName, Mode=OneWay}" FontWeight="SemiBold" />
-                                <LineBreak />
-                                <Run Text="Версия: " />
-                                <Run Text="{Binding SchemaVersion, Mode=OneWay}" FontWeight="SemiBold" />
-                            </TextBlock>
-                        </StackPanel>
-                    </StackPanel>
+                        <!--  Текст успеха  -->
+                        <TextBlock
+                            Margin="0,15,0,0"
+                            HorizontalAlignment="Center"
+                            FontSize="18"
+                            FontWeight="SemiBold"
+                            Foreground="#4CAF50"
+                            Text="{Binding ValidationResultText}" />
 
-                    <!-- ОШИБКА ВАЛИДАЦИИ -->
-                    <StackPanel
-                        Visibility="{Binding IsValidationSuccess, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                        <!--  Информация о схеме  -->
+                        <StackPanel Margin="0,20,0,0" HorizontalAlignment="Center">
+                            <StackPanel Margin="0,0,0,5" Orientation="Horizontal">
+                                <materialDesign:PackIcon
+                                    Width="18"
+                                    Height="18"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"
+                                    Foreground="#4CAF50"
+                                    Kind="FileDocument" />
+                                <TextBlock
+                                    FontSize="13"
+                                    Foreground="#4CAF50"
+                                    TextWrapping="Wrap">
+                                    <Run Text="Используемая схема: " />
+                                    <Run FontWeight="SemiBold" Text="{Binding SchemaFileName, Mode=OneWay}" />
+                                </TextBlock>
+                            </StackPanel>
 
-                        <!-- Заголовок ошибки -->
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <materialDesign:PackIcon Kind="AlertCircle"
-                                                     Width="28"
-                                                     Height="28"
-                                                     VerticalAlignment="Top"
-                                                     Margin="0,0,10,0"
-                                                     Foreground="#F44336" />
-                            <StackPanel>
-                                <TextBlock Text="Валидация не пройдена"
-                                           FontSize="16"
-                                           FontWeight="Bold"
-                                           Foreground="#F44336" />
-                                <TextBlock Text="{Binding ValidationResultText}"
-                                           TextWrapping="Wrap"
-                                           FontSize="12"
-                                           Foreground="#757575"
-                                           Margin="0,5,0,0" />
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon
+                                    Width="18"
+                                    Height="18"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"
+                                    Foreground="#4CAF50"
+                                    Kind="FileCode" />
+                                <TextBlock
+                                    FontSize="13"
+                                    Foreground="#4CAF50"
+                                    TextWrapping="Wrap">
+                                    <Run Text="Версия схемы: " />
+                                    <Run FontWeight="SemiBold" Text="{Binding SchemaVersion, Mode=OneWay}" />
+                                </TextBlock>
                             </StackPanel>
                         </StackPanel>
+                    </StackPanel>
+                </materialDesign:Card>
 
-                        <!-- Основной текст ошибки с иконками -->
-                        <Border Background="#FFF3E0"
-                                BorderBrush="#FFB74D"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="15"
-                                Margin="0,0,0,10">
-                            <StackPanel>
+                <!--  ОШИБКИ ВАЛИДАЦИИ  -->
+                <StackPanel
+                    Visibility="{Binding IsValidationSuccess, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
 
-                                <!-- Расположение -->
-                                <Grid Margin="0,0,0,10"
-                                      Visibility="{Binding ErrorLocation, Converter={StaticResource NullToVisibilityConverter}}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="28" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <materialDesign:PackIcon Grid.Column="0"
-                                                             Kind="MapMarker"
-                                                             Width="20"
-                                                             Height="20"
-                                                             VerticalAlignment="Top"
-                                                             Foreground="#2196F3" />
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="Расположение ошибки:"
-                                                   FontSize="13"
-                                                   FontWeight="Bold"
-                                                   Foreground="#2196F3" />
-                                        <TextBlock Text="{Binding ErrorLocation}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="12"
-                                                   Foreground="#424242"
-                                                   Margin="0,3,0,0" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <!-- Путь к элементу -->
-                                <Grid Margin="0,0,0,10"
-                                      Visibility="{Binding ErrorPath, Converter={StaticResource NullToVisibilityConverter}}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="28" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <materialDesign:PackIcon Grid.Column="0"
-                                                             Kind="FileTree"
-                                                             Width="20"
-                                                             Height="20"
-                                                             VerticalAlignment="Top"
-                                                             Foreground="#FF9800" />
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="Где находится ошибка:"
-                                                   FontSize="13"
-                                                   FontWeight="Bold"
-                                                   Foreground="#FF9800" />
-                                        <TextBlock Text="{Binding ErrorPath}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="12"
-                                                   Foreground="#424242"
-                                                   Margin="0,3,0,0"
-                                                   FontFamily="Segoe UI" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <!-- Описание проблемы -->
-                                <Grid Margin="0,0,0,10"
-                                      Visibility="{Binding ErrorDescription, Converter={StaticResource NullToVisibilityConverter}}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="28" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <materialDesign:PackIcon Grid.Column="0"
-                                                             Kind="AlertCircleOutline"
-                                                             Width="20"
-                                                             Height="20"
-                                                             VerticalAlignment="Top"
-                                                             Foreground="#F44336" />
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="Что не так:"
-                                                   FontSize="13"
-                                                   FontWeight="Bold"
-                                                   Foreground="#F44336" />
-                                        <TextBlock Text="{Binding ErrorDescription}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="12"
-                                                   Foreground="#D32F2F"
-                                                   Margin="0,3,0,0" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <!-- Требования -->
-                                <Grid Margin="0,0,0,10"
-                                      Visibility="{Binding ErrorDetails, Converter={StaticResource NullToVisibilityConverter}}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="28" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <materialDesign:PackIcon Grid.Column="0"
-                                                             Kind="Cog"
-                                                             Width="20"
-                                                             Height="20"
-                                                             VerticalAlignment="Top"
-                                                             Foreground="#757575" />
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="Требования к заполнению:"
-                                                   FontSize="13"
-                                                   FontWeight="Bold"
-                                                   Foreground="#424242" />
-                                        <TextBlock Text="{Binding ErrorDetails}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="12"
-                                                   Foreground="#424242"
-                                                   Margin="0,3,0,0" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <!-- Текущее значение -->
-                                <Grid
-                                    Visibility="{Binding CurrentValue, Converter={StaticResource NullToVisibilityConverter}}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="28" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <materialDesign:PackIcon Grid.Column="0"
-                                                             Kind="Information"
-                                                             Width="20"
-                                                             Height="20"
-                                                             VerticalAlignment="Top"
-                                                             Foreground="#FF6F00" />
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="Вы указали:"
-                                                   FontSize="13"
-                                                   FontWeight="Bold"
-                                                   Foreground="#FF6F00" />
-                                        <TextBlock Text="{Binding CurrentValue}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="12"
-                                                   Foreground="#E65100"
-                                                   FontFamily="Segoe UI"
-                                                   FontWeight="SemiBold"
-                                                   Margin="0,3,0,0" />
-                                    </StackPanel>
-                                </Grid>
-
+                    <!--  Заголовок ошибок  -->
+                    <materialDesign:Card
+                        Margin="0,20,0,0"
+                        Padding="20"
+                        Background="#FFEBEE">
+                        <StackPanel>
+                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                <materialDesign:PackIcon
+                                    Width="48"
+                                    Height="48"
+                                    Foreground="#F44336"
+                                    Kind="AlertCircle" />
                             </StackPanel>
-                        </Border>
-                    </StackPanel>
 
-                    <!-- ЗАГРУЗКА -->
-                    <StackPanel Orientation="Horizontal"
-                                Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <ProgressBar IsIndeterminate="True"
-                                     Style="{StaticResource MaterialDesignCircularProgressBar}"
-                                     Value="0"
-                                     Width="24"
-                                     Height="24"
-                                     Margin="0,0,10,0" />
-                        <TextBlock Text="{Binding ValidationResultText}"
-                                   TextWrapping="Wrap"
-                                   FontSize="14"
-                                   Foreground="#2196F3"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
+                            <TextBlock
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Center"
+                                FontSize="18"
+                                FontWeight="SemiBold"
+                                Foreground="#F44336"
+                                Text="{Binding ValidationResultText}" />
+
+                            <!--  Информация о схеме при ошибке  -->
+                            <StackPanel Margin="0,15,0,0" HorizontalAlignment="Center">
+                                <TextBlock
+                                    FontSize="13"
+                                    Foreground="#666"
+                                    TextWrapping="Wrap">
+                                    <Run Text="Схема: " />
+                                    <Run FontWeight="SemiBold" Text="{Binding SchemaFileName}" />
+                                    <Run Text=" (версия " />
+                                    <Run Text="{Binding SchemaVersion}" />
+                                    <Run Text=")" />
+                                </TextBlock>
+
+                                <TextBlock
+                                    Margin="0,5,0,0"
+                                    HorizontalAlignment="Center"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Foreground="#F44336"
+                                    Text="{Binding ErrorCount, StringFormat='Найдено ошибок: {0}'}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <!--  Панель поиска и экспорта  -->
+                    <Grid Margin="0,20,0,10"
+                          Visibility="{Binding HasErrors, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--  Поиск  -->
+                        <TextBox
+                            Grid.Column="0"
+                            Margin="0,0,10,0"
+                            VerticalAlignment="Center"
+                            materialDesign:HintAssist.Hint="🔍 Поиск по ошибкам..."
+                            Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                            Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <!--  Кнопка экспорта  -->
+                        <Button
+                            Grid.Column="1"
+                            Command="{Binding ExportToExcelCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon
+                                    Width="20"
+                                    Height="20"
+                                    Kind="FileExcel" />
+                                <TextBlock Margin="8,0,0,0" Text="Экспорт в Excel" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <!--  Счетчик найденных ошибок  -->
+                    <TextBlock
+                        Margin="0,0,0,10"
+                        FontSize="12"
+                        Foreground="Gray"
+                        Visibility="{Binding HasErrors, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Run Text="Показано: " />
+                        <Run FontWeight="Bold" Text="{Binding FilteredErrors.Count, Mode=OneWay}" />
+                        <Run Text=" из " />
+                        <Run FontWeight="Bold" Text="{Binding Errors.Count, Mode=OneWay}" />
+                    </TextBlock>
+
+                    <!--  Список ошибок (карточки)  -->
+                    <ItemsControl ItemsSource="{Binding FilteredErrors}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <materialDesign:Card
+                                    Margin="0,0,0,15"
+                                    Padding="20"
+                                    materialDesign:ElevationAssist.Elevation="Dp2">
+                                    <StackPanel>
+                                        <!--  Номер ошибки  -->
+                                        <TextBlock
+                                            Margin="0,0,0,10"
+                                            FontSize="16"
+                                            FontWeight="Bold"
+                                            Foreground="#F44336">
+                                            <Run Text="❌ Ошибка #" />
+                                            <Run Text="{Binding ErrorNumber}" />
+                                        </TextBlock>
+
+                                        <!--  Расположение  -->
+                                        <StackPanel Margin="0,0,0,10"
+                                                    Visibility="{Binding Location, Converter={StaticResource NullToVisibilityConverter}}">
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#666"
+                                                Text="📍 Расположение:" />
+                                            <TextBlock
+                                                Margin="20,5,0,0"
+                                                FontFamily="Consolas"
+                                                FontSize="12"
+                                                Text="{Binding Location}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+
+                                        <!--  Путь  -->
+                                        <StackPanel Margin="0,0,0,10"
+                                                    Visibility="{Binding Path, Converter={StaticResource NullToVisibilityConverter}}">
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#666"
+                                                Text="📂 Путь к элементу:" />
+                                            <TextBlock
+                                                Margin="20,5,0,0"
+                                                FontFamily="Consolas"
+                                                FontSize="12"
+                                                Foreground="#2196F3"
+                                                Text="{Binding Path}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+
+                                        <!--  Описание  -->
+                                        <StackPanel Margin="0,0,0,10"
+                                                    Visibility="{Binding Description, Converter={StaticResource NullToVisibilityConverter}}">
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#666"
+                                                Text="❌ Описание проблемы:" />
+                                            <TextBlock
+                                                Margin="20,5,0,0"
+                                                FontSize="13"
+                                                Text="{Binding Description}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+
+                                        <!--  Требования  -->
+                                        <StackPanel Margin="0,0,0,10"
+                                                    Visibility="{Binding Details, Converter={StaticResource NullToVisibilityConverter}}">
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#666"
+                                                Text="⚙️ Требования к заполнению:" />
+                                            <TextBlock
+                                                Margin="20,5,0,0"
+                                                FontSize="12"
+                                                Foreground="#FF9800"
+                                                Text="{Binding Details}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+
+                                        <!--  Текущее значение  -->
+                                        <StackPanel
+                                            Visibility="{Binding CurrentValue, Converter={StaticResource NullToVisibilityConverter}}">
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Foreground="#666"
+                                                Text="💡 Текущее значение:" />
+                                            <Border
+                                                Margin="20,5,0,0"
+                                                Padding="10"
+                                                Background="#FFF3E0"
+                                                BorderBrush="#FF9800"
+                                                BorderThickness="1"
+                                                CornerRadius="4">
+                                                <TextBlock
+                                                    FontFamily="Consolas"
+                                                    FontSize="12"
+                                                    FontWeight="Bold"
+                                                    Foreground="#E65100"
+                                                    Text="{Binding CurrentValue}"
+                                                    TextWrapping="Wrap" />
+                                            </Border>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </materialDesign:Card>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
                 </StackPanel>
-            </ScrollViewer>
-        </Border>
 
-        <!-- Кнопка закрытия -->
-        <Button Grid.Row="3"
-                Command="{Binding CloseCommand}"
-                Style="{StaticResource MaterialDesignOutlinedButton}"
-                HorizontalAlignment="Right"
-                Margin="0,20,0,0"
-                Width="120">
-            <StackPanel Orientation="Horizontal">
-                <materialDesign:PackIcon Kind="Close"
-                                         VerticalAlignment="Center"
-                                         Margin="0,0,5,0" />
-                <TextBlock Text="Закрыть" VerticalAlignment="Center" />
             </StackPanel>
-        </Button>
+        </ScrollViewer>
     </Grid>
 </Window>

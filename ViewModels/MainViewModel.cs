@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FileSignatureChecker.Models;
 using FileSignatureChecker.Services;
+using MaterialDesignThemes.Wpf;
 using Microsoft.Win32;
 
 namespace FileSignatureChecker.ViewModels
@@ -16,6 +17,8 @@ namespace FileSignatureChecker.ViewModels
     public partial class MainViewModel : ObservableObject
     {
         private readonly FileCheckService _fileCheckService = new();
+
+        public SnackbarMessageQueue MessageQueue { get; } = new(TimeSpan.FromSeconds(3));
 
         [ObservableProperty] private string _xmlFilePath = string.Empty;
 
@@ -214,7 +217,7 @@ namespace FileSignatureChecker.ViewModels
                 IsChecking = false;
             }
         }
-        
+
         /// <summary>
         /// Команда для открытия окна проверки схемы
         /// [RelayCommand] автоматически создает свойство OpenSchemaValidationCommand
@@ -224,17 +227,30 @@ namespace FileSignatureChecker.ViewModels
         private void OpenSchemaValidation()
         {
             var mainWindow = Application.Current.MainWindow;
-            
+
             mainWindow?.Hide();
-            
+
             var validationWindow = new SchemaValidationView();
-            
-            validationWindow.Closed += (s, args) =>
-            {
-                mainWindow?.Show();
-            };
-            
+
+            validationWindow.Closed += (s, args) => { mainWindow?.Show(); };
+
             validationWindow.Show();
+        }
+
+        [RelayCommand]
+        private void CopyFileName(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return;
+
+            try
+            {
+                Clipboard.SetText(fileName);
+                MessageQueue.Enqueue("📋 Имя файла скопировано!");
+            }
+            catch (Exception ex)
+            {
+                MessageQueue.Enqueue($"❌ Ошибка: {ex.Message}");
+            }
         }
 
         [RelayCommand]
@@ -250,7 +266,7 @@ namespace FileSignatureChecker.ViewModels
             SectionFilterOptions.Add("Все разделы");
             StatusMessage = "Результаты очищены";
         }
-        
+
         [RelayCommand]
         private void ClearSearch()
         {

@@ -28,7 +28,7 @@ public partial class SchemaValidationView : Window
     /// </summary>
     private void OnCloseRequested(object? sender, EventArgs e)
     {
-        this.Close();
+        Close();
     }
     
     /// <summary>

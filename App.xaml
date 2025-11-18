@@ -22,6 +22,7 @@
             <local:ErrorVisibilityConverter x:Key="ErrorVisibilityConverter" />
             <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
             <local:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+            <local:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
         </ResourceDictionary>   
     </Application.Resources>
 </Application>

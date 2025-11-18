@@ -1,7 +1,11 @@
 using System;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using ClosedXML.Excel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FileSignatureChecker.Models;
@@ -20,28 +24,19 @@ public partial class SchemaValidationViewModel : ObservableObject
     private readonly XmlValidationService _validationService;
 
     [ObservableProperty] private string _fileName;
-
     [ObservableProperty] private bool _isFileNameVisible;
-
     [ObservableProperty] private string _validationResultText;
-
     [ObservableProperty] private string _schemaFileName;
-
     [ObservableProperty] private string _schemaVersion;
-
-    [ObservableProperty] private string _errorLocation;
-
-    [ObservableProperty] private string _errorPath;
-
-    [ObservableProperty] private string _errorDescription;
-
-    [ObservableProperty] private string _errorDetails;
-
-    [ObservableProperty] private string _currentValue;
-
     [ObservableProperty] private bool _isValidationSuccess;
-
     [ObservableProperty] private bool _isLoading;
+    [ObservableProperty] private int _errorCount;
+
+    // Для множественных ошибок
+    [ObservableProperty] private ObservableCollection<ValidationError> _errors;
+    [ObservableProperty] private ObservableCollection<ValidationError> _filteredErrors;
+    [ObservableProperty] private string _searchText;
+    [ObservableProperty] private bool _hasErrors;
 
     public SchemaValidationViewModel()
     {
@@ -50,17 +45,44 @@ public partial class SchemaValidationViewModel : ObservableObject
         IsFileNameVisible = false;
         IsValidationSuccess = false;
         IsLoading = false;
+        Errors = new ObservableCollection<ValidationError>();
+        FilteredErrors = new ObservableCollection<ValidationError>();
+        HasErrors = false;
     }
 
-    /// <summary>
-    /// Команда загрузки файла
-    /// [RelayCommand] автоматически создает свойство LoadFileCommand типа IAsyncRelayCommand
-    /// Это свойство можно биндить к кнопке: Command="{Binding LoadFileCommand}"
-    /// </summary>
+    partial void OnSearchTextChanged(string value)
+    {
+        FilterErrors();
+    }
+
+    private void FilterErrors()
+    {
+        if (Errors == null || Errors.Count == 0)
+        {
+            FilteredErrors = new ObservableCollection<ValidationError>();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            FilteredErrors = new ObservableCollection<ValidationError>(Errors);
+        }
+        else
+        {
+            var filtered = Errors.Where(e =>
+                (e.Description?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true) ||
+                (e.Location?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true) ||
+                (e.Path?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true) ||
+                (e.Details?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true) ||
+                (e.CurrentValue?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true)
+            );
+            FilteredErrors = new ObservableCollection<ValidationError>(filtered);
+        }
+    }
+
     [RelayCommand]
     private async Task LoadFileAsync()
     {
-        // Открываем диалог выбора файла
         var openFileDialog = new OpenFileDialog()
         {
             Filter = "XML и GGE файлы (*.xml;*.gge)|*.xml;*.gge|XML файлы (*.xml)|*.xml|GGE файлы (*.gge)|*.gge",
@@ -73,29 +95,25 @@ public partial class SchemaValidationViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// Валидирует выбранный файл
-    /// </summary>
     private async Task ValidateFileAsync(string filePath)
     {
         try
         {
             IsLoading = true;
-
             FileName = $"Файл: {filePath}";
             IsFileNameVisible = true;
-
             ValidationResultText = "⏳ Идет проверка файла...";
             IsValidationSuccess = false;
+            HasErrors = false;
 
             var result = await _validationService.ValidateFileAsync(filePath);
-
             DisplayValidationResult(result);
         }
         catch (Exception ex)
         {
             ValidationResultText = $"❌ Ошибка при проверке файла:\n\n{ex.Message}";
             IsValidationSuccess = false;
+            HasErrors = false;
         }
         finally
         {
@@ -103,149 +121,125 @@ public partial class SchemaValidationViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// Отображает результат валидации
-    /// </summary>
     private void DisplayValidationResult(ValidationResult result)
     {
         IsValidationSuccess = result.IsValid;
+        SchemaFileName = result.SchemaFileName;
+        SchemaVersion = result.SchemaVersion ?? "не указана";
 
         if (result.IsValid)
         {
             ValidationResultText = "Файл прошел валидацию успешно!";
-            SchemaFileName = result.SchemaFileName;
-            SchemaVersion = result.SchemaVersion ?? "не указана";
-
-            ErrorLocation = null;
-            ErrorPath = null;
-            ErrorDescription = null;
-            ErrorDetails = null;
-            CurrentValue = null;
+            Errors.Clear();
+            FilteredErrors.Clear();
+            HasErrors = false;
+            ErrorCount = 0;  // ← ДОБАВЬ
         }
         else
         {
-            SchemaFileName = result.SchemaFileName;
-            SchemaVersion = result.SchemaVersion ?? "не указана";
-            ValidationResultText = $"Проверка по схеме: {SchemaFileName} (версия {SchemaVersion})";
-
-            ParseErrorMessage(result.ErrorMessage);
+            ValidationResultText = $"Валидация не пройдена";
+        
+            Errors.Clear();
+            foreach (var error in result.Errors)
+            {
+                Errors.Add(error);
+            }
+        
+            FilterErrors();
+            HasErrors = Errors.Count > 0;
+            ErrorCount = Errors.Count; 
         }
     }
 
-    private void ParseErrorMessage(string errorMessage)
+    [RelayCommand]
+    private void ExportToExcel()
     {
-        var lines = errorMessage.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-        var locationBuilder = new StringBuilder();
-        var pathBuilder = new StringBuilder();
-        var descriptionBuilder = new StringBuilder();
-        var detailsBuilder = new StringBuilder();
-        var valueBuilder = new StringBuilder();
-
-        var currentSection = "";
-
-        foreach (var line in lines)
+        if (Errors == null || Errors.Count == 0)
         {
-            var trimmedLine = line.Trim();
+            MessageBox.Show("Нет ошибок для экспорта.", "Информация",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
 
-            // Пропускаем заголовки
-            if (trimmedLine.StartsWith("═══")) continue;
-            if (trimmedLine.StartsWith("Найдены")) continue;
+        var saveFileDialog = new SaveFileDialog
+        {
+            Filter = "Excel файлы (*.xlsx)|*.xlsx",
+            FileName = $"Ошибки_валидации_{DateTime.Now:yyyy-MM-dd_HH-mm}.xlsx",
+            Title = "Сохранить отчет об ошибках"
+        };
 
-            // Определяем секцию
-            if (trimmedLine.Contains("📍") && trimmedLine.Contains("Расположение"))
+        if (saveFileDialog.ShowDialog() == true)
+        {
+            try
             {
-                currentSection = "location";
-                continue;
-            }
-            else if (trimmedLine.Contains("📂") && trimmedLine.Contains("Путь"))
-            {
-                currentSection = "path";
-                continue;
-            }
-            else if (trimmedLine.Contains("❌") && trimmedLine.Contains("Описание"))
-            {
-                currentSection = "description";
-                continue;
-            }
-            else if (trimmedLine.Contains("⚙️") && trimmedLine.Contains("Требования"))
-            {
-                currentSection = "details";
-                continue;
-            }
-            else if (trimmedLine.Contains("💡"))
-            {
-                currentSection = "value";
-                var match = System.Text.RegularExpressions.Regex.Match(trimmedLine, @"['\""](.+?)['\""']");
-                if (match.Success)
+                using var workbook = new XLWorkbook();
+                var worksheet = workbook.Worksheets.Add("Ошибки валидации");
+
+                // Заголовки
+                worksheet.Cell(1, 1).Value = "№";
+                worksheet.Cell(1, 2).Value = "Расположение";
+                worksheet.Cell(1, 3).Value = "Путь";
+                worksheet.Cell(1, 4).Value = "Описание";
+                worksheet.Cell(1, 5).Value = "Требования";
+                worksheet.Cell(1, 6).Value = "Текущее значение";
+
+                // Стиль заголовков
+                var headerRange = worksheet.Range(1, 1, 1, 6);
+                headerRange.Style.Font.Bold = true;
+                headerRange.Style.Fill.BackgroundColor = XLColor.LightBlue;
+                headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                // Данные
+                for (int i = 0; i < Errors.Count; i++)
                 {
-                    valueBuilder.Append(match.Groups[1].Value);
+                    var error = Errors[i];
+                    var row = i + 2;
+
+                    worksheet.Cell(row, 1).Value = error.ErrorNumber;
+                    worksheet.Cell(row, 2).Value = error.Location ?? "";
+                    worksheet.Cell(row, 3).Value = error.Path ?? "";
+                    worksheet.Cell(row, 4).Value = error.Description ?? "";
+                    worksheet.Cell(row, 5).Value = error.Details ?? "";
+                    worksheet.Cell(row, 6).Value = error.CurrentValue ?? "";
+
+                    // Перенос текста в ячейках
+                    worksheet.Row(row).Style.Alignment.WrapText = true;
                 }
 
-                continue;
+                // Автоподбор ширины колонок
+                worksheet.Columns().AdjustToContents();
+
+                // Ограничиваем максимальную ширину
+                foreach (var column in worksheet.ColumnsUsed())
+                {
+                    if (column.Width > 50)
+                        column.Width = 50;
+                }
+
+                workbook.SaveAs(saveFileDialog.FileName);
+
+                MessageBox.Show(
+                    $"Отчет успешно сохранен!\n\nФайл: {saveFileDialog.FileName}\nОшибок: {Errors.Count}",
+                    "Экспорт завершен",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
-
-            // Добавляем в секцию с ПЕРЕНОСАМИ СТРОК
-            switch (currentSection)
+            catch (Exception ex)
             {
-                case "location":
-                    if (!string.IsNullOrWhiteSpace(trimmedLine))
-                    {
-                        if (locationBuilder.Length > 0) locationBuilder.AppendLine();
-                        locationBuilder.Append(trimmedLine);
-                    }
-
-                    break;
-                case "path":
-                    if (!string.IsNullOrWhiteSpace(trimmedLine))
-                    {
-                        var cleanLine = trimmedLine.Replace("→", "").Trim();
-                        if (!string.IsNullOrWhiteSpace(cleanLine))
-                        {
-                            if (pathBuilder.Length > 0) pathBuilder.AppendLine();
-                            pathBuilder.Append("→ " + cleanLine);
-                        }
-                    }
-
-                    break;
-                case "description":
-                    if (!string.IsNullOrWhiteSpace(trimmedLine))
-                    {
-                        if (descriptionBuilder.Length > 0) descriptionBuilder.AppendLine();
-                        descriptionBuilder.Append(trimmedLine);
-                    }
-
-                    break;
-                case "details":
-                    if (!string.IsNullOrWhiteSpace(trimmedLine))
-                    {
-                        if (detailsBuilder.Length > 0) detailsBuilder.AppendLine();
-                        detailsBuilder.Append(trimmedLine);
-                    }
-
-                    break;
+                MessageBox.Show(
+                    $"Ошибка при экспорте:\n\n{ex.Message}",
+                    "Ошибка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
-
-        ErrorLocation = locationBuilder.Length > 0 ? locationBuilder.ToString() : null;
-        ErrorPath = pathBuilder.Length > 0 ? pathBuilder.ToString() : null;
-        ErrorDescription = descriptionBuilder.Length > 0 ? descriptionBuilder.ToString() : null;
-        ErrorDetails = detailsBuilder.Length > 0 ? detailsBuilder.ToString() : null;
-        CurrentValue = valueBuilder.Length > 0 ? valueBuilder.ToString() : null;
     }
 
-    /// <summary>
-    /// Команда закрытия окна
-    /// [RelayCommand] создает свойство CloseCommand
-    /// </summary>
     [RelayCommand]
     private void Close()
     {
         CloseRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>
-    /// Событие для закрытия окна
-    /// View подписывается на это событие
-    /// </summary>
     public event EventHandler CloseRequested;
 }
