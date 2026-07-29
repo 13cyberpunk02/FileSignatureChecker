@@ -228,7 +228,7 @@ namespace FileSignatureChecker.ViewModels
         {
             var mainWindow = Application.Current.MainWindow;
 
-            mainWindow?.Hide();
+            mainWindow?.Hide(); 
 
             var validationWindow = new SchemaValidationView();
 
@@ -250,7 +250,7 @@ namespace FileSignatureChecker.ViewModels
             catch (Exception ex)
             {
                 MessageQueue.Enqueue($"❌ Ошибка: {ex.Message}");
-            }
+            }   
         }
 
         [RelayCommand]

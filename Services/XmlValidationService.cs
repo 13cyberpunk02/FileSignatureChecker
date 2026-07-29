@@ -17,13 +17,41 @@ namespace FileSignatureChecker.Services
         private readonly string _schemaDirectory;
         private List<XsdSchemaInfo> _availableSchemas;
 
+        // Словарь переводов стандартных типов XSD на русский
+        private static readonly Dictionary<string, string> XsdTypeTranslations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "positiveInteger", "положительное целое число (больше 0)" },
+            { "nonNegativeInteger", "неотрицательное целое число (0 или больше)" },
+            { "negativeInteger", "отрицательное целое число (меньше 0)" },
+            { "nonPositiveInteger", "неположительное целое число (0 или меньше)" },
+            { "integer", "целое число" },
+            { "int", "целое число" },
+            { "unsignedInt", "целое число без знака (0 или больше)" },
+            { "long", "длинное целое число" },
+            { "unsignedLong", "длинное целое число без знака" },
+            { "short", "короткое целое число" },
+            { "unsignedShort", "короткое целое число без знака" },
+            { "byte", "байт (-128 до 127)" },
+            { "unsignedByte", "байт без знака (0 до 255)" },
+            { "decimal", "десятичное число" },
+            { "float", "число с плавающей точкой" },
+            { "double", "число с плавающей точкой двойной точности" },
+            { "string", "текстовая строка" },
+            { "boolean", "логическое значение (true/false)" },
+            { "date", "дата (ГГГГ-ММ-ДД)" },
+            { "time", "время (ЧЧ:ММ:СС)" },
+            { "dateTime", "дата и время (ГГГГ-ММ-ДД ЧЧ:ММ:СС)" },
+            { "duration", "длительность" },
+            { "anyURI", "URL адрес" },
+            { "base64Binary", "данные в формате Base64" },
+            { "hexBinary", "данные в шестнадцатеричном формате" },
+            { "normalizedString", "нормализованная строка" },
+            { "token", "токен (строка без лишних пробелов)" }
+        };
+
         public XmlValidationService(string schemaDirectory = null)
         {
-            var baseDirectory = Environment.ProcessPath ?? 
-                                System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-            var exeDir =  Path.GetDirectoryName(baseDirectory);
-            _schemaDirectory = exeDir != null ? Path.Combine(exeDir, "Assets") : schemaDirectory;
-            
+            _schemaDirectory = schemaDirectory ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
             LoadAvailableSchemas();
         }
 
@@ -140,6 +168,26 @@ namespace FileSignatureChecker.Services
 
                 if (matchingSchema == null)
                 {
+                    var schemaFileName = Path.GetFileName(fileInfo.SchemaLocation);
+                    var availableSchemasList = string.Join("\n   • ", _availableSchemas.Select(s => $"{s.FileName} (версия: {s.Version ?? s.FixedSchemaVersion ?? "не указана"})"));
+                    
+                    var errorMessage = $"Не найдена подходящая XSD схема для валидации.\n\n" +
+                        $"📋 Файл требует:\n" +
+                        $"   • Схема: {schemaFileName}\n" +
+                        $"   • Версия: {fileInfo.Version ?? "не указана"}\n\n";
+                    
+                    if (_availableSchemas.Count > 0)
+                    {
+                        errorMessage += $"📂 Доступные схемы в папке ({_availableSchemas.Count}):\n" +
+                            $"   • {availableSchemasList}\n\n";
+                    }
+                    
+                    errorMessage += $"💡 Что нужно сделать:\n" +
+                        $"   1. Поместите файл '{schemaFileName}' в папку:\n" +
+                        $"      {_schemaDirectory}\n" +
+                        $"   2. Убедитесь, что имя файла точно совпадает\n" +
+                        $"   3. Проверьте версию схемы в XSD файле";
+                    
                     return new ValidationResult
                     {
                         IsValid = false,
@@ -148,20 +196,10 @@ namespace FileSignatureChecker.Services
                             new ValidationError
                             {
                                 ErrorNumber = 1,
-                                Description = $"Не найдена подходящая XSD схема для валидации.\n\n" +
-                                    $"📋 Файл требует схему:\n" +
-                                    $"   • Имя схемы: {fileInfo.SchemaLocation}\n" +
-                                    $"   • Версия: {fileInfo.Version}\n\n" +
-                                    $"💡 Что нужно сделать:\n" +
-                                    $"   • Поместите нужный XSD файл в папку: {_schemaDirectory}\n" +
-                                    $"   • Убедитесь, что версия в XSD совпадает с версией в файле",
-                                FullMessage = $"❌ Не найдена подходящая XSD схема для валидации.\n\n" +
-                                    $"📋 Файл требует схему:\n" +
-                                    $"   • Имя схемы: {fileInfo.SchemaLocation}\n" +
-                                    $"   • Версия: {fileInfo.Version}\n\n" +
-                                    $"💡 Что нужно сделать:\n" +
-                                    $"   • Поместите нужный XSD файл в папку: {_schemaDirectory}\n" +
-                                    $"   • Убедитесь, что версия в XSD совпадает с версией в файле"
+                                Description = errorMessage,
+                                FullMessage = "❌ " + errorMessage,
+                                Location = $"Требуется: {schemaFileName}",
+                                Details = $"Папка схем: {_schemaDirectory}"
                             }
                         }
                     };
@@ -263,7 +301,9 @@ namespace FileSignatureChecker.Services
             string xmlFilePath)
         {
             var result = new StringBuilder();
-            var message = error.Args.Message;
+            
+            // Сразу переводим исходное сообщение на русский
+            var message = TranslateStandardXsdError(error.Args.Message);
             var ns = XNamespace.Get("http://www.w3.org/2001/XMLSchema");
 
             try
@@ -324,6 +364,15 @@ namespace FileSignatureChecker.Services
                     var patternExplanation = ExplainPatternError(errorElementName, errorElement, xsdDoc, ns);
                     result.Append(patternExplanation);
                 }
+                else if (message.Contains("could not be converted") || 
+                         message.Contains("не может быть преобразован") ||
+                         message.Contains("invalid value") ||
+                         message.Contains("is not a valid value"))
+                {
+                    // Ошибка преобразования типа
+                    var typeExplanation = ExplainTypeConversionError(errorElementName, errorElement, xsdDoc, ns, message);
+                    result.Append(typeExplanation);
+                }
                 else if (message.Contains("required attribute") || message.Contains("обязательный атрибут"))
                 {
                     result.AppendLine($"   В элементе отсутствует обязательный атрибут.");
@@ -340,14 +389,16 @@ namespace FileSignatureChecker.Services
                 }
                 else
                 {
-                    result.AppendLine($"   {message}");
-                }
-
-                // Показываем значение с ошибкой
-                if (!string.IsNullOrWhiteSpace(errorElement.Value))
-                {
-                    result.AppendLine();
-                    result.AppendLine($"💡 Текущее значение: '{errorElement.Value}'");
+                    // Пытаемся перевести стандартное сообщение
+                    var translatedMessage = TranslateStandardXsdError(message);
+                    result.AppendLine($"   {translatedMessage}");
+                    
+                    // Показываем значение с ошибкой только для не-типовых ошибок
+                    if (!string.IsNullOrWhiteSpace(errorElement.Value))
+                    {
+                        result.AppendLine();
+                        result.AppendLine($"💡 Текущее значение: '{errorElement.Value}'");
+                    }
                 }
 
             }
@@ -459,6 +510,186 @@ namespace FileSignatureChecker.Services
             error.Details = detailsBuilder.Length > 0 ? detailsBuilder.ToString() : null;
 
             return error;
+        }
+
+        /// <summary>
+        /// Объясняет ошибку преобразования типа с переводом на русский
+        /// </summary>
+        private string ExplainTypeConversionError(string elementName, XElement errorElement, XDocument xsdDoc, XNamespace ns, string originalMessage)
+        {
+            var result = new StringBuilder();
+            
+            // Получаем описание элемента из XSD
+            var elementDescription = GetElementDescription(xsdDoc, ns, elementName);
+            
+            if (!string.IsNullOrEmpty(elementDescription))
+            {
+                result.AppendLine($"   Поле: {CleanDescription(elementDescription)}");
+                result.AppendLine();
+            }
+
+            // Ищем определение элемента в XSD
+            var elementDef = xsdDoc.Descendants(ns + "element")
+                .FirstOrDefault(e => e.Attribute("name")?.Value == elementName);
+
+            if (elementDef != null)
+            {
+                // Получаем тип элемента
+                var typeName = elementDef.Attribute("type")?.Value;
+                
+                if (!string.IsNullOrEmpty(typeName))
+                {
+                    // Убираем префикс xs: или xsd:
+                    if (typeName.Contains(":"))
+                    {
+                        typeName = typeName.Split(':')[1];
+                    }
+
+                    // Переводим тип на русский
+                    if (XsdTypeTranslations.TryGetValue(typeName, out var russianType))
+                    {
+                        result.AppendLine($"   Требуемый тип данных: {russianType}");
+                    }
+                    else
+                    {
+                        result.AppendLine($"   Требуемый тип данных: {typeName}");
+                    }
+                    result.AppendLine();
+
+                    // Добавляем примеры для популярных типов
+                    result.AppendLine($"   ⚙️ Требования:");
+                    
+                    switch (typeName.ToLower())
+                    {
+                        case "positiveinteger":
+                            result.AppendLine($"   • Должно быть целое число больше нуля");
+                            result.AppendLine($"   • Примеры правильных значений: 1, 2, 100, 999");
+                            result.AppendLine($"   • Недопустимо: 0, -1, 1.5, текст, пустое значение");
+                            break;
+                            
+                        case "nonnegativeinteger":
+                            result.AppendLine($"   • Должно быть целое число, равное нулю или больше");
+                            result.AppendLine($"   • Примеры правильных значений: 0, 1, 2, 100");
+                            result.AppendLine($"   • Недопустимо: -1, 1.5, текст, пустое значение");
+                            break;
+                            
+                        case "integer":
+                        case "int":
+                            result.AppendLine($"   • Должно быть целое число");
+                            result.AppendLine($"   • Примеры правильных значений: -100, 0, 1, 999");
+                            result.AppendLine($"   • Недопустимо: 1.5, текст, пустое значение");
+                            break;
+                            
+                        case "decimal":
+                            result.AppendLine($"   • Должно быть число (можно с дробной частью)");
+                            result.AppendLine($"   • Примеры правильных значений: 0, 1, 1.5, 99.99, -10.5");
+                            result.AppendLine($"   • Недопустимо: текст, пустое значение");
+                            break;
+                            
+                        case "string":
+                            result.AppendLine($"   • Должна быть текстовая строка");
+                            result.AppendLine($"   • Может содержать любые символы");
+                            break;
+                            
+                        case "date":
+                            result.AppendLine($"   • Должна быть дата в формате: ГГГГ-ММ-ДД");
+                            result.AppendLine($"   • Примеры правильных значений: 2024-01-15, 2023-12-31");
+                            result.AppendLine($"   • Недопустимо: 15.01.2024, 01/15/2024, текст");
+                            break;
+                            
+                        case "datetime":
+                            result.AppendLine($"   • Должны быть дата и время в формате: ГГГГ-ММ-ДДTЧЧ:ММ:СС");
+                            result.AppendLine($"   • Примеры правильных значений: 2024-01-15T14:30:00");
+                            result.AppendLine($"   • Недопустимо: 15.01.2024 14:30, текст");
+                            break;
+                            
+                        case "boolean":
+                            result.AppendLine($"   • Должно быть логическое значение");
+                            result.AppendLine($"   • Допустимые значения: true, false, 1, 0");
+                            result.AppendLine($"   • Недопустимо: да, нет, текст");
+                            break;
+                    }
+                    
+                    // Добавляем текущее значение из элемента
+                    if (errorElement != null && !string.IsNullOrEmpty(errorElement.Value))
+                    {
+                        result.AppendLine();
+                        result.AppendLine($"   💡 Текущее значение: '{errorElement.Value}'");
+                        result.AppendLine($"   ⚠️ Это значение не соответствует требуемому типу данных!");
+                    }
+                }
+            }
+
+            return result.ToString();
+        }
+
+        /// <summary>
+        /// Переводит стандартные ошибки XSD на русский
+        /// </summary>
+        private string TranslateStandardXsdError(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return message;
+
+            // Словарь переводов стандартных сообщений
+            var translations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                // Основные фразы
+                { "The element", "Элемент" },
+                { "The value", "Значение" },
+                { "is not a valid value", "не является допустимым значением" },
+                { "is not a valid value for", "не является допустимым значением для" },
+                { "could not be converted", "невозможно преобразовать" },
+                { "invalid value", "недопустимое значение" },
+                { "is invalid", "недопустим" },
+                { "недопустим-", "недопустим." }, // исправляем дефис
+                
+                // Типы данных
+                { "according to its datatype", "согласно типу данных" },
+                { "positiveInteger", "положительное целое число" },
+                { "nonNegativeInteger", "неотрицательное целое число" },
+                { "negativeInteger", "отрицательное целое число" },
+                { "integer", "целое число" },
+                { "decimal", "десятичное число" },
+                { "string", "строка" },
+                { "boolean", "логическое значение" },
+                { "date", "дата" },
+                { "dateTime", "дата и время" },
+                { "unsignedShort", "короткое целое число без знака" },
+                { "unsignedInt", "целое число без знака" },
+                { "unsignedByte", "байт без знака" },
+                
+                // Ошибки диапазона
+                { "was either too large or too small for", "выходит за допустимые пределы для типа" },
+                { "Value", "Значение" },
+                { "PositiveInteger", "положительное целое число" },
+                
+                // Структурные ошибки
+                { "has invalid child element", "содержит недопустимый дочерний элемент" },
+                { "List of possible elements expected", "Ожидается список возможных элементов" },
+                { "required attribute", "обязательный атрибут" },
+                { "required element", "обязательный элемент" },
+                { "missing", "отсутствует" },
+                { "not expected", "не ожидается" },
+                { "incomplete content", "неполное содержимое" },
+                
+                // URL и технические термины
+                { "http://www.w3.org/2001/XMLSchema", "схема XML" }
+            };
+
+            var translated = message;
+            
+            // Применяем переводы по порядку
+            foreach (var pair in translations)
+            {
+                translated = translated.Replace(pair.Key, pair.Value);
+            }
+            
+            // Удаляем лишние пробелы
+            translated = Regex.Replace(translated, @"\s+", " ");
+            translated = translated.Trim();
+
+            return translated;
         }
 
         private string ExplainPatternError(string elementName, XElement errorElement, XDocument xsdDoc, XNamespace ns)
@@ -798,37 +1029,82 @@ namespace FileSignatureChecker.Services
 
         private XsdSchemaInfo FindMatchingSchema(FileSchemaInfo fileInfo)
         {
-            var schemaByName = _availableSchemas.FirstOrDefault(s => 
-                s.FileName.Equals(fileInfo.SchemaLocation, StringComparison.OrdinalIgnoreCase));
+            if (fileInfo == null || string.IsNullOrEmpty(fileInfo.SchemaLocation))
+                return null;
 
-            if (schemaByName != null)
+            // Извлекаем имя файла схемы из SchemaLocation (например: "MarketAnalysis-3_01.xsd")
+            var schemaFileName = Path.GetFileName(fileInfo.SchemaLocation);
+            
+            System.Diagnostics.Debug.WriteLine($"[FindMatchingSchema] Ищем схему: {schemaFileName}, версия: {fileInfo.Version}");
+
+            // ПРИОРИТЕТ 1: Точное совпадение по имени файла И версии
+            var exactMatch = _availableSchemas.FirstOrDefault(s =>
+                s.FileName.Equals(schemaFileName, StringComparison.OrdinalIgnoreCase) &&
+                (s.Version == fileInfo.Version || s.FixedSchemaVersion == fileInfo.Version));
+
+            if (exactMatch != null)
             {
-                if (!string.IsNullOrEmpty(fileInfo.Version))
+                System.Diagnostics.Debug.WriteLine($"[FindMatchingSchema] ✓ Найдено точное совпадение: {exactMatch.FileName}");
+                return exactMatch;
+            }
+
+            // ПРИОРИТЕТ 2: Совпадение по имени файла (игнорируем версию)
+            var nameMatch = _availableSchemas.FirstOrDefault(s =>
+                s.FileName.Equals(schemaFileName, StringComparison.OrdinalIgnoreCase));
+
+            if (nameMatch != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FindMatchingSchema] ⚠ Найдено совпадение по имени: {nameMatch.FileName} (версия может не совпадать)");
+                return nameMatch;
+            }
+
+            // ПРИОРИТЕТ 3: Попытка найти по базовому имени без версии
+            // Например: "MarketAnalysis-3_01.xsd" -> "MarketAnalysis"
+            var baseSchemaName = ExtractBaseSchemaName(schemaFileName);
+            
+            if (!string.IsNullOrEmpty(baseSchemaName))
+            {
+                var baseNameMatch = _availableSchemas.FirstOrDefault(s =>
                 {
-                    if (schemaByName.Version == fileInfo.Version || 
-                        schemaByName.FixedSchemaVersion == fileInfo.Version)
-                    {
-                        return schemaByName;
-                    }
-                }
-                else
+                    var candidateBaseName = ExtractBaseSchemaName(s.FileName);
+                    return candidateBaseName.Equals(baseSchemaName, StringComparison.OrdinalIgnoreCase);
+                });
+
+                if (baseNameMatch != null)
                 {
-                    return schemaByName;
+                    System.Diagnostics.Debug.WriteLine($"[FindMatchingSchema] ⚠ Найдено совпадение по базовому имени: {baseNameMatch.FileName}");
+                    return baseNameMatch;
                 }
             }
 
-            if (!string.IsNullOrEmpty(fileInfo.Version))
-            {
-                var schemaByVersion = _availableSchemas.FirstOrDefault(s =>
-                    s.Version == fileInfo.Version || s.FixedSchemaVersion == fileInfo.Version);
-
-                if (schemaByVersion != null)
-                {
-                    return schemaByVersion;
-                }
-            }
-
+            System.Diagnostics.Debug.WriteLine($"[FindMatchingSchema] ✗ Схема не найдена для: {schemaFileName}");
             return null;
+        }
+
+        /// <summary>
+        /// Извлекает базовое имя схемы без версии
+        /// Например: "MarketAnalysis-3_01.xsd" -> "MarketAnalysis"
+        /// "LocalEstimateResourceIndexMethod-3_01.xsd" -> "LocalEstimateResourceIndexMethod"
+        /// </summary>
+        private string ExtractBaseSchemaName(string schemaFileName)
+        {
+            if (string.IsNullOrEmpty(schemaFileName))
+                return string.Empty;
+
+            // Убираем расширение .xsd
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(schemaFileName);
+            
+            // Убираем версию (всё после последнего дефиса с цифрами)
+            // "MarketAnalysis-3_01" -> "MarketAnalysis"
+            // "LocalEstimateResourceIndexMethod-3_01" -> "LocalEstimateResourceIndexMethod"
+            var match = System.Text.RegularExpressions.Regex.Match(nameWithoutExtension, @"^(.+?)[-_]\d+");
+            
+            if (match.Success)
+            {
+                return match.Groups[1].Value;
+            }
+
+            return nameWithoutExtension;
         }
     }
 }
