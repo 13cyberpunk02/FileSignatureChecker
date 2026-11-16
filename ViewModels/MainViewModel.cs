@@ -44,6 +44,15 @@ namespace FileSignatureChecker.ViewModels
 
         [ObservableProperty] private int _infoCount;
 
+        // Сколько строк видно в таблице с учётом фильтров (счётчики выше — всегда по всей проверке)
+        [ObservableProperty] private int _shownCount;
+
+        [ObservableProperty] private bool _isFiltered;
+
+        [ObservableProperty] private string _emptyStateTitle = "Нет результатов проверки";
+
+        [ObservableProperty] private string _emptyStateHint = "Выберите XML файл и директорию, затем нажмите 'Выполнить проверку'";
+
         [ObservableProperty] private string _statusMessage = "Готов к проверке";
 
         [ObservableProperty] private FileCheckResult? _selectedResult;
@@ -144,6 +153,7 @@ namespace FileSignatureChecker.ViewModels
             IsChecking = true;
             StatusMessage = "Выполняется проверка...";
             CheckResults.Clear();
+            _allCheckResults.Clear();
             ResetCounters();
             ProgressValue = 0;
             ProgressText = "Подготовка";
@@ -304,6 +314,8 @@ namespace FileSignatureChecker.ViewModels
                     writer.WriteLine($"  Предупреждения: {WarningCount}");
                     writer.WriteLine($"  Ошибки: {ErrorCount}");
                     writer.WriteLine($"  Информационные: {InfoCount}");
+                    if (IsFiltered)
+                        writer.WriteLine($"  В отчёт включено с учётом фильтров: {CheckResults.Count}");
                     writer.WriteLine();
                     writer.WriteLine(new string('=', 80));
                     writer.WriteLine();
@@ -520,23 +532,34 @@ namespace FileSignatureChecker.ViewModels
             }
         }
 
+        /// <summary>
+        /// Счётчики считаются по всем результатам проверки, а не по отфильтрованным:
+        /// иначе при фильтре "Ошибки" поле "Всего" показывало только число ошибок.
+        /// </summary>
         private void CalculateStatistics()
         {
-            TotalFiles = CheckResults.Count;
-            SuccessCount = CheckResults.Count(r => r.Status == CheckStatus.Success);
-            WarningCount = CheckResults.Count(r => r.Status == CheckStatus.Warning);
-            ErrorCount = CheckResults.Count(r => r.Status == CheckStatus.Error);
-            InfoCount = CheckResults.Count(r => r.Status == CheckStatus.Info);
+            TotalFiles = _allCheckResults.Count;
+            SuccessCount = _allCheckResults.Count(r => r.Status == CheckStatus.Success);
+            WarningCount = _allCheckResults.Count(r => r.Status == CheckStatus.Warning);
+            ErrorCount = _allCheckResults.Count(r => r.Status == CheckStatus.Error);
+            InfoCount = _allCheckResults.Count(r => r.Status == CheckStatus.Info);
+
+            ShownCount = CheckResults.Count;
+            IsFiltered = TotalFiles > 0 && ShownCount < TotalFiles;
+
+            if (TotalFiles == 0)
+            {
+                EmptyStateTitle = "Нет результатов проверки";
+                EmptyStateHint = "Выберите XML файл и директорию, затем нажмите 'Выполнить проверку'";
+            }
+            else
+            {
+                EmptyStateTitle = "Нет результатов по выбранным фильтрам";
+                EmptyStateHint = "Измените фильтр статуса, раздел или строку поиска";
+            }
         }
 
-        private void ResetCounters()
-        {
-            TotalFiles = 0;
-            SuccessCount = 0;
-            WarningCount = 0;
-            ErrorCount = 0;
-            InfoCount = 0;
-        }
+        private void ResetCounters() => CalculateStatistics();
 
         private string GetStatusText(CheckStatus status)
         {

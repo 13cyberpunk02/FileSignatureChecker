@@ -148,6 +148,8 @@ FileSignatureChecker/
 
 MIT License
 
+Иконка приложения: [Puzzle Matching](https://icons8.com/icon/set/puzzle-matching/fluency) от [Icons8](https://icons8.com).
+
 ## Автор
 
 Создано для проверки соответствия файлов и электронных подписей требованиям пояснительной записки.

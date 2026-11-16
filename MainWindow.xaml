@@ -388,7 +388,14 @@
                                                          Margin="0,0,8,0" />
                                 <TextBlock Text="{Binding TotalFiles}"
                                            VerticalAlignment="Center"
-                                           FontWeight="SemiBold" />
+                                           FontWeight="SemiBold"
+                                           ToolTip="Всего результатов проверки" />
+                                <TextBlock Text="{Binding ShownCount, StringFormat='(показано {0})'}"
+                                           VerticalAlignment="Center"
+                                           Margin="6,0,0,0"
+                                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                           ToolTip="Строк в таблице с учётом фильтров и поиска"
+                                           Visibility="{Binding IsFiltered, Converter={StaticResource BooleanToVisibilityConverter}}" />
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
@@ -619,10 +626,12 @@
                                                      Width="64" Height="64"
                                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                      Margin="0,0,0,16" />
-                            <TextBlock Text="Нет результатов проверки"
+                            <TextBlock Text="{Binding EmptyStateTitle}"
+                                       HorizontalAlignment="Center"
                                        FontSize="16"
                                        Foreground="{DynamicResource MaterialDesignBodyLight}" />
-                            <TextBlock Text="Выберите XML файл и директорию, затем нажмите 'Выполнить проверку'"
+                            <TextBlock Text="{Binding EmptyStateHint}"
+                                       HorizontalAlignment="Center"
                                        FontSize="12"
                                        Foreground="{DynamicResource MaterialDesignBodyLight}"
                                        Margin="0,8,0,0" />
