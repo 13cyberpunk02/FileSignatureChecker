@@ -1,0 +1,384 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" version="1.01"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:simpleType name="TAccessLevel">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="общедоступная информация"/>
+      <xs:enumeration value="для служебного пользования"/>
+      <xs:enumeration value="коммерческая тайна"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="TFileFormat">
+    <xs:annotation>
+      <xs:documentation>Комплексный тип для описания типа и версии передаваемого файла</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Type">
+        <xs:annotation>
+          <xs:documentation><text>
+            Тип передаваемого файла:
+            КА - Конъюнктурный анализ;
+          </text></xs:documentation>
+        </xs:annotation>
+        <xs:simpleType final="restriction">
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="КА"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="Version" default="1.01">
+        <xs:annotation>
+          <xs:documentation>Номер версии схемы</xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:decimal">
+            <xs:fractionDigits value="2"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="TMeta">
+    <xs:annotation>
+      <xs:documentation>Информация о программном комплексе и версии формата</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Soft">
+        <xs:annotation>
+          <xs:documentation>Программный комплекс</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Name" type="xs:string">
+              <xs:annotation>
+                <xs:documentation>Наименование программного комплекса</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:element name="Version" type="xs:string">
+              <xs:annotation>
+                <xs:documentation>Версия программного комплекса</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="File" type="TFileFormat">
+        <xs:annotation>
+          <xs:documentation>Тип и версия передаваемого файла</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="TSignature">
+    <xs:sequence>
+      <xs:element name="Name"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="TExtSignature">
+    <xs:complexContent>
+      <xs:extension base="TSignature">
+        <xs:sequence>
+          <xs:element name="Position">
+            <xs:annotation>
+              <xs:documentation>Должность</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="TPriceLevel">
+    <xs:annotation>
+      <xs:documentation>Составляющие элементы уровеня цен</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Year" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Год</xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:unsignedShort">
+            <xs:minInclusive value="1964"/>
+            <xs:maxInclusive value="2100"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:choice>
+        <xs:element name="Month" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>Месяц</xs:documentation>
+          </xs:annotation>
+          <xs:simpleType>
+            <xs:restriction base="xs:unsignedByte">
+              <xs:minInclusive value="1"/>
+              <xs:maxInclusive value="12"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="Quarter" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>Квартал</xs:documentation>
+          </xs:annotation>
+          <xs:simpleType>
+            <xs:restriction base="xs:unsignedByte">
+              <xs:minInclusive value="1"/>
+              <xs:maxInclusive value="4"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:element>
+      </xs:choice>
+      <xs:element name="Note" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Примечание</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="TOffer">
+    <xs:annotation>
+      <xs:documentation><text> Результаты конъюнктурного анализа в текущих ценах не менее 3 (трех) (при наличии) производителей и (или) поставщиков в соответствии с положениями пунктов 13 - 21 Методики</text>
+      <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links>
+    </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Name" type="xs:string" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Полное наименование материального ресурса, оборудования, отдельных видов прочих затрат в обосновывающем документе</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="Unit" type="xs:string" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation><text> Единица измерения материального ресурса, оборудования, отдельных видов прочих затрат в обосновывающем документе</text> 
+            <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links></xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="Price" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation><text> Сметная стоимость результатов конъюнктурного анализа</text>
+            <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links>
+          </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="OfferWithVAT" type="xs:decimal" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>Текущая отпускная цена за ед. изм. в обосновывающем документе с НДС в руб.</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:element name="OfferWithoutVAT" type="xs:decimal" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>Текущая отпускная цена за ед. изм. без НДС в руб. в соответствии с графой 5</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:element name="Transportation" type="xs:decimal" minOccurs="0" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>Стоимость перевозки без НДС в руб. за ед. изм.</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:element name="Storage" minOccurs="0" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>Заготовительно-складские расходы</xs:documentation>
+              </xs:annotation>
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="Price" type="xs:decimal" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                      <xs:documentation>Заготовительно-складские расходы в руб.</xs:documentation>
+                    </xs:annotation>
+                  </xs:element>
+                  <xs:element name="Percent" type="xs:integer" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                      <xs:documentation>Заготовительно-складские расходы в процентах</xs:documentation>
+                    </xs:annotation>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="EstimateWithoutVAT" type="xs:decimal" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>Сметная цена без НДС в руб. за ед. изм.</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="PriceLevel" type="TPriceLevel" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation><text> Уровень цен результатов конъюнктурного анализа</text>
+            <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links>
+            
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="Company" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation><text> Информация о производителе (поставщике) </text>
+            <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links>
+          </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Name" type="xs:string" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>Наименование производителя/поставщика</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:element name="KPP" type="xs:long" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>КПП организации</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:element name="INN" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>ИНН организации</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:pattern value="[0-9]{10}|[0-9]{12}|"/>
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:element>
+            <xs:element name="Site" type="xs:string" minOccurs="0" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>Гиперссылка на веб-сайт производителя/поставщика</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:element name="StorePlace" type="xs:string" minOccurs="0" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>Населенный пункт расположения склада производителя/поставщика</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:element name="Status" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                <xs:documentation>Статус организации (производитель(1)/поставщик (2))</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:unsignedByte">
+                  <xs:enumeration value="1"/>
+                  <xs:enumeration value="2"/>
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="LinkFile" type="xs:string" minOccurs="1" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation><text> Ссылки на файлы c обосновывающими документами, подписанные производителями и (или) поставщиками соответствующих материальных ресурсов и оборудования (работ, услуг) и (или) заверенными подписями уполномоченного лица производителей и (или) поставщиков, при использовании обосновывающих документов из открытых источников - подписанные уполномоченным лицом заказчика</text> 
+            <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на	территории   Российской   Федерации,  утвержденная   приказом   Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links>
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="TResource">
+    <xs:annotation>
+      <xs:documentation><text>Результаты конъюнктурного анализа</text>
+        <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links></xs:documentation>
+    </xs:annotation>
+
+    <xs:sequence>
+      <xs:element name="Num" type="xs:positiveInteger" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation><text>Порядковый номер позиции</text>
+            <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links></xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="Code" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation><text>Код группы строительного ресурса в соответствии с Классификатором строительных ресурсов (КСР) </text>
+            <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links>
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="Name" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation><text> Наименование материального ресурса, оборудования, отдельных видов прочих затрат</text>
+            <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links>
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="Unit" type="xs:string" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Единица измерения</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+
+      <xs:element name="Offer" minOccurs="1" maxOccurs="unbounded" type="TOffer">
+        <xs:annotation>
+          <xs:documentation><text> Результаты конъюнктурного анализа в текущих ценах не менее 3 (трех) (при наличии) производителей и (или) поставщиков в соответствии с положениями пунктов 13 - 21 Методики</text>
+            <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links>
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:element name="Construction">
+    <xs:annotation>
+      <xs:documentation>Объекты капитального строительства (реконструкции, капитального ремонта)(Стройка) 
+        Элемент обязан содержать аттрибуты указывающие на применяемый xsd-шаблон описания сметы: xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="MarketAnalysis-1_01.xsd". Электронные документы, представляемые для проведения государственной экспертизы проектной документации и (или) результатов инженерных изысканий и проверки достоверности определения сметной стоимости строительства, реконструкции, капитального ремонта, должны иметь расширение файла .gge</xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Meta" type="TMeta">
+          <xs:annotation>
+            <xs:documentation>Информация о программном комплексе и версии формата</xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element minOccurs="0" name="AccessLevel" type="TAccessLevel">
+          <xs:annotation>
+            <xs:documentation>Информация о уровне доступа. Возможные варианты заполнения - «общедоступная информация», «для служебного пользования» или «коммерческая тайна».</xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element name="ObjectName" type="xs:string">
+          <xs:annotation>
+            <xs:documentation>Наименование объекта строительства</xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element name="Signatures">
+          <xs:annotation>
+            <xs:documentation>Подписи</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Composer" type="TExtSignature" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>Подпись составляющего (ФИО)</xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="Verifier" type="TExtSignature" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>Подпись проверяющего (ФИО)</xs:documentation>
+                </xs:annotation>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Resources" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation><text>Таблица с результатами конъюнктурного анализа</text> 
+              <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links></xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Resource" minOccurs="1" maxOccurs="unbounded" type="TResource">
+                <xs:annotation>
+                  <xs:documentation><text>Результаты конъюнктурного анализа</text> 
+                    <links>Методика определения сметной стоимости строительства, реконструкции, капитального ремонта, сноса объектов капитального строительства, работ по сохранению объектов культурного наследия (памятников истории и культуры) народов Российской Федерации на территории Российской Федерации, утвержденная приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 4 августа 2020 г. № 421/пр (с учетом изменений от 07.07.2022 № 577/пр). </links></xs:documentation>
+                </xs:annotation>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

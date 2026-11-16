@@ -52,7 +52,13 @@ namespace FileSignatureChecker.Services
             }
         }
 
+        /// <summary>
+        /// Сравнивает контрольные суммы. Пустая сумма (не указана в XML или файл не удалось прочитать)
+        /// никогда не считается совпадением.
+        /// </summary>
         public static bool CompareChecksums(string checksum1, string checksum2)
-           => string.Equals(checksum1, checksum2, StringComparison.OrdinalIgnoreCase);
+           => !string.IsNullOrWhiteSpace(checksum1)
+              && !string.IsNullOrWhiteSpace(checksum2)
+              && string.Equals(checksum1.Trim(), checksum2.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,16 +10,19 @@ namespace FileSignatureChecker.Services
     public class FileCheckService
     {
         private readonly string[] _supportedExtensions = [".pdf", ".xls", ".xlsx", ".doc", ".docx", ".gge"];
-        private readonly Dictionary<string, string> _checksumCache = new Dictionary<string, string>();
+        // Заполняется параллельно из FindFileByChecksum (AsParallel), поэтому ConcurrentDictionary
+        private readonly ConcurrentDictionary<string, string> _checksumCache = new(StringComparer.OrdinalIgnoreCase);
 
+        // Имена файлов, которые встречаются в директории более одного раза (имя -> все пути)
+        private Dictionary<string, List<string>> _duplicateFiles = new(StringComparer.OrdinalIgnoreCase);
 
         public List<FileCheckResult> CheckFiles(List<Document> documents, string directoryPath)
         {
             var results = new List<FileCheckResult>();
-            
+
             _checksumCache.Clear();
-            
-            var allFilesInDirectory = GetAllFiles(directoryPath);
+
+            var allFilesInDirectory = GetAllFiles(directoryPath, out _duplicateFiles);
             var processedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             
             var sigFilesIndex = BuildSignatureFilesIndex(allFilesInDirectory);
@@ -219,25 +223,52 @@ namespace FileSignatureChecker.Services
             return results;
         }
 
-        private static Dictionary<string, string> GetAllFiles(string directoryPath)
+        /// <summary>
+        /// Собирает файлы директории (рекурсивно) в словарь "имя файла -> путь".
+        /// Если одно имя встречается в нескольких подпапках, в словарь попадает файл
+        /// с наименьшей глубиной вложенности, а все пути возвращаются в <paramref name="duplicates"/>.
+        /// </summary>
+        private static Dictionary<string, string> GetAllFiles(string directoryPath, out Dictionary<string, List<string>> duplicates)
         {
-            var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var options = new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = true, // недоступная подпапка не должна обнулять весь список
+                AttributesToSkip = FileAttributes.System
+            };
 
-            try
+            var grouped = Directory.EnumerateFiles(directoryPath, "*", options)
+                .OrderBy(path => path.Count(c => c == Path.DirectorySeparatorChar))
+                .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .GroupBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            duplicates = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var group in grouped)
             {
-                var allFiles = Directory.GetFiles(directoryPath, "*.*", SearchOption.AllDirectories);
-                foreach (var file in allFiles)
-                {
-                    var fileName = Path.GetFileName(file);
-                    files[fileName] = file;
-                }
-            }
-            catch (Exception)
-            {
-                // Игнорируем ошибки доступа к директориям
+                var paths = group.ToList();
+                files[group.Key!] = paths[0];
+                if (paths.Count > 1)
+                    duplicates[group.Key!] = paths;
             }
 
             return files;
+        }
+
+        private void AppendDuplicateWarning(string fileName, FileCheckResult result)
+        {
+            if (!_duplicateFiles.TryGetValue(fileName, out var paths)) return;
+
+            if (result.Status == CheckStatus.Success)
+                result.Status = CheckStatus.Warning;
+
+            result.Message += $"\n⚠ В директории найдено {paths.Count} файла(ов) с именем '{fileName}'. Проверен: '{paths[0]}'. Остальные:";
+            foreach (var path in paths.Skip(1))
+            {
+                result.Message += $"\n  • {path}";
+            }
         }
 
         private FileCheckResult CheckFile(
@@ -294,6 +325,8 @@ namespace FileSignatureChecker.Services
                 }
             }
             
+            AppendDuplicateWarning(xmlFile.FileName, result);
+
             if (xmlFile.SignFiles.Count > 0)
             {
                 CheckSignatures(xmlFile, result, allFiles);
@@ -312,6 +345,10 @@ namespace FileSignatureChecker.Services
 
         private string FindFileByChecksum(string checksum, Dictionary<string, string> allFiles)
         {
+            // Без контрольной суммы искать нечего, а перебор пересчитал бы CRC всех файлов
+            if (string.IsNullOrWhiteSpace(checksum))
+                return string.Empty;
+
             if (allFiles.Count > 100)
             {
                 var result = allFiles.AsParallel()
@@ -336,14 +373,7 @@ namespace FileSignatureChecker.Services
         
         private string CalculateChecksumWithCache(string filePath)
         {
-            if (_checksumCache.TryGetValue(filePath, out var cachedChecksum))
-            {
-                return cachedChecksum;
-            }
-
-            var checksum = Crc32Service.CalculateChecksum(filePath);
-            _checksumCache[filePath] = checksum;
-            return checksum;
+            return _checksumCache.GetOrAdd(filePath, Crc32Service.CalculateChecksum);
         }
 
         private string FindSignatureFile(string signatureFileName, string signatureChecksum,

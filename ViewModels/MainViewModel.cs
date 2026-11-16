@@ -180,8 +180,6 @@ namespace FileSignatureChecker.ViewModels
                         ProgressValue = 80;
                     });
 
-                    System.Threading.Thread.Sleep(200);
-
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         _allCheckResults.Clear();
@@ -520,27 +518,6 @@ namespace FileSignatureChecker.ViewModels
             {
                 SectionFilterOptions.Add(section);
             }
-        }
-
-        private void FilterResults()
-        {
-            CheckResults.Clear();
-
-            var filtered = SelectedStatusFilter switch
-            {
-                "Успешно" => _allCheckResults.Where(r => r.Status == CheckStatus.Success),
-                "Предупреждения" => _allCheckResults.Where(r => r.Status == CheckStatus.Warning),
-                "Ошибки" => _allCheckResults.Where(r => r.Status == CheckStatus.Error),
-                "Информация" => _allCheckResults.Where(r => r.Status == CheckStatus.Info),
-                _ => _allCheckResults
-            };
-
-            foreach (var result in filtered)
-            {
-                CheckResults.Add(result);
-            }
-
-            CalculateStatistics();
         }
 
         private void CalculateStatistics()

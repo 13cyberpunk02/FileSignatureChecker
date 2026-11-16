@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Assets\" />
+    <None Include="Assets\*.xsd" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
