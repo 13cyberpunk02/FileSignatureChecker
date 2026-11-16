@@ -6,15 +6,15 @@ WPF приложение для автоматической проверки с
 
 ## ⚡ Быстрая установка
 
-### Шаг 1: Установите .NET 8.0
-Скачайте и установите **.NET Desktop Runtime 8.0** с официального сайта:
-👉 https://dotnet.microsoft.com/download/dotnet/8.0
+### Шаг 1: Установите .NET 10.0
+Скачайте и установите **.NET Desktop Runtime 10.0** с официального сайта:
+👉 https://dotnet.microsoft.com/download/dotnet/10.0
 
 ### Шаг 2: Распакуйте проект
 Распакуйте архив `FileSignatureChecker.zip` в любую папку
 
 ### Шаг 3: Откройте проект
-- **Visual Studio 2022**: Откройте файл `FileSignatureChecker.csproj`
+- **Visual Studio 2026**: Откройте файл `FileSignatureChecker.csproj`
 - **Командная строка**: 
   ```bash
   cd FileSignatureChecker
@@ -65,7 +65,7 @@ FileSignatureChecker/
 ## 🔧 Требования
 
 - Windows 10 (1809+) / Windows 11
-- .NET 8.0 Runtime или SDK
+- .NET 10.0 Runtime или SDK
 - 4 ГБ RAM
 - 100 МБ на диске
 
@@ -78,10 +78,10 @@ FileSignatureChecker/
 ## 🐛 Возможные проблемы
 
 ### "SDK not found"
-→ Установите .NET 8.0 SDK
+→ Установите .NET 10.0 SDK
 
 ### "OpenFolderDialog не работает"
-→ Используйте .NET 8.0 (не 7 или ниже)
+→ Используйте .NET 10.0 (не 7 или ниже)
 
 ### Приложение не запускается
 → Запустите от имени администратора
@@ -93,7 +93,7 @@ FileSignatureChecker/
 ## 📞 Помощь
 
 При возникновении проблем проверьте:
-1. ✅ Установлен ли .NET 8.0
+1. ✅ Установлен ли .NET 10.0
 2. ✅ Правильная ли структура XML файла
 3. ✅ Есть ли права на чтение файлов и папок
 
