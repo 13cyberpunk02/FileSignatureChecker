@@ -22,10 +22,10 @@ WPF приложение для проверки соответствия фай
 ## Установка зависимостей
 
 Проект использует следующие NuGet пакеты:
-- CommunityToolkit.Mvvm (8.4.0)
-- MaterialDesignThemes (5.3.0)
-- MaterialDesignColors (5.3.0)
-- ClosedXML (0.105.0) — экспорт в Excel
+- CommunityToolkit.Mvvm (8.4.2)
+- MaterialDesignThemes (5.4.0)
+- MaterialDesignColors (5.4.0)
+- ClosedXML (0.105.1) — экспорт в Excel
 
 Для установки выполните:
 ```bash
