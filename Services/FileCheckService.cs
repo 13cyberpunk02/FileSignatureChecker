@@ -27,11 +27,16 @@ namespace FileSignatureChecker.Services
             
             var sigFilesIndex = BuildSignatureFilesIndex(allFilesInDirectory);
 
+            // Все подписи, указанные в XML у любого файла: они не "дополнительные" ни для какого другого файла
+            var allXmlSignatureNames = new HashSet<string>(
+                documents.SelectMany(d => d.Files).SelectMany(f => f.SignFiles).Select(s => s.FileName),
+                StringComparer.OrdinalIgnoreCase);
+
             foreach (var document in documents)
             {
                 foreach (var xmlFile in document.Files)
                 {
-                    var result = CheckFile(xmlFile, allFilesInDirectory, document, sigFilesIndex);
+                    var result = CheckFile(xmlFile, allFilesInDirectory, document, sigFilesIndex, allXmlSignatureNames);
                     results.Add(result);
 
                     if (!result.FileFound || string.IsNullOrEmpty(result.FilePath)) continue;
@@ -109,27 +114,26 @@ namespace FileSignatureChecker.Services
             XmlFileInfo xmlFile, 
             FileCheckResult result, 
             Dictionary<string, string> allFiles,
-            Dictionary<string, List<string>> sigFilesIndex)
+            Dictionary<string, List<string>> sigFilesIndex,
+            HashSet<string> allXmlSignatureNames)
         {
-            
             var fileName = xmlFile.FileName;
+            if (string.IsNullOrWhiteSpace(fileName)) return;
+
             var possibleSigFiles = new List<string>();
-            var sigFileNamesFromXml = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            
-            foreach (var signFile in xmlFile.SignFiles)
-            {
-                sigFileNamesFromXml.Add(signFile.FileName);
-            }
 
             if (sigFilesIndex.TryGetValue(fileName, out var indexedSigFiles))
             {
-                possibleSigFiles.AddRange(from sigPath in indexedSigFiles let sigFileName = Path.GetFileName(sigPath) where !sigFileNamesFromXml.Contains(sigFileName) select sigPath);
+                possibleSigFiles.AddRange(indexedSigFiles.Where(sigPath => !allXmlSignatureNames.Contains(Path.GetFileName(sigPath))));
             }
-            
-            foreach (var kvp in from kvp in allFiles let fileNameInDir = kvp.Key where fileNameInDir.EndsWith(".sig", StringComparison.OrdinalIgnoreCase) where fileNameInDir.Contains(fileName, StringComparison.OrdinalIgnoreCase) &&
-                         !sigFileNamesFromXml.Contains(fileNameInDir) where !possibleSigFiles.Contains(kvp.Value) select kvp)
+
+            foreach (var (fileNameInDir, sigPath) in allFiles)
             {
-                possibleSigFiles.Add(kvp.Value);
+                if (!fileNameInDir.EndsWith(".sig", StringComparison.OrdinalIgnoreCase)) continue;
+                if (allXmlSignatureNames.Contains(fileNameInDir)) continue;
+                if (possibleSigFiles.Contains(sigPath)) continue;
+                if (IsSignatureNameFor(fileNameInDir, fileName))
+                    possibleSigFiles.Add(sigPath);
             }
 
             if (possibleSigFiles.Count <= 0) return;
@@ -188,7 +192,12 @@ namespace FileSignatureChecker.Services
                 if (!_supportedExtensions.Contains(extension))
                     continue;
 
-                var relatedSigFiles = (from file in allFiles where file.Key.EndsWith(".sig", StringComparison.OrdinalIgnoreCase) && (file.Key.Equals(fileName + ".sig", StringComparison.OrdinalIgnoreCase) || file.Key.Contains(fileName, StringComparison.OrdinalIgnoreCase)) where !processedFiles.Contains(file.Value) select file.Key).ToList();
+                var relatedSigFiles = allFiles
+                    .Where(file => file.Key.EndsWith(".sig", StringComparison.OrdinalIgnoreCase)
+                                   && IsSignatureNameFor(file.Key, fileName)
+                                   && !processedFiles.Contains(file.Value))
+                    .Select(file => file.Key)
+                    .ToList();
 
                 if (relatedSigFiles.Count <= 0) continue;
                 var result = new FileCheckResult
@@ -257,6 +266,26 @@ namespace FileSignatureChecker.Services
             return files;
         }
 
+        /// <summary>
+        /// Похоже ли имя .sig файла на подпись файла <paramref name="fileName"/>:
+        /// имя файла входит в имя подписи и не "приклеено" к другим буквам/цифрам слева.
+        /// "Иванов_1.pdf.sig" и "1.pdf.sig" — подписи "1.pdf", а "11.pdf.sig" и "Раздел1.pdf.sig" — нет.
+        /// </summary>
+        private static bool IsSignatureNameFor(string sigFileName, string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return false;
+
+            var index = sigFileName.IndexOf(fileName, StringComparison.OrdinalIgnoreCase);
+            while (index >= 0)
+            {
+                if (index == 0 || !char.IsLetterOrDigit(sigFileName[index - 1]))
+                    return true;
+                index = sigFileName.IndexOf(fileName, index + 1, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+
         private void AppendDuplicateWarning(string fileName, FileCheckResult result)
         {
             if (!_duplicateFiles.TryGetValue(fileName, out var paths)) return;
@@ -274,8 +303,9 @@ namespace FileSignatureChecker.Services
         private FileCheckResult CheckFile(
             XmlFileInfo xmlFile, 
             Dictionary<string, string> allFiles, 
-            Document document, 
-            Dictionary<string, List<string>> sigFilesIndex)
+            Document document,
+            Dictionary<string, List<string>> sigFilesIndex,
+            HashSet<string> allXmlSignatureNames)
         {
             var result = new FileCheckResult
             {
@@ -332,7 +362,7 @@ namespace FileSignatureChecker.Services
                 CheckSignatures(xmlFile, result, allFiles);
             }
             
-            CheckAdditionalSignaturesInDirectory(xmlFile, result, allFiles, sigFilesIndex);
+            CheckAdditionalSignaturesInDirectory(xmlFile, result, allFiles, sigFilesIndex, allXmlSignatureNames);
 
             return result;
         }

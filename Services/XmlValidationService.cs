@@ -302,14 +302,17 @@ namespace FileSignatureChecker.Services
         {
             var result = new StringBuilder();
             
-            // Сразу переводим исходное сообщение на русский
-            var message = TranslateStandardXsdError(error.Args.Message);
+            // Анализ ведём по исходному (английскому) сообщению, пользователю показываем перевод.
+            // Раньше и имя элемента, и тип ошибки искались в уже переведённом тексте, из-за чего
+            // имена вроде 'TotalValue' превращались в 'TotalЗначение', а ветка ошибок типа не срабатывала.
+            var original = error.Args?.Message ?? string.Empty;
+            var message = TranslateStandardXsdError(original);
             var ns = XNamespace.Get("http://www.w3.org/2001/XMLSchema");
 
             try
             {
                 // Извлекаем имя элемента с ошибкой из сообщения
-                var elementNameMatch = Regex.Match(message, @"'(\w+)'");
+                var elementNameMatch = Regex.Match(original, @"'([\w.\-]+)'");
                 
                 if (!elementNameMatch.Success)
                 {
@@ -358,40 +361,46 @@ namespace FileSignatureChecker.Services
                 // Анализируем тип ошибки и даем детальное объяснение
                 result.AppendLine($"❌ Описание проблемы:");
                 
-                if (message.IndexOf("pattern constraint", StringComparison.OrdinalIgnoreCase) >= 0 || 
-                    message.Contains("шаблон"))
+                bool Has(string text) => original.Contains(text, StringComparison.OrdinalIgnoreCase);
+
+                if (Has("pattern constraint"))
                 {
+                    result.AppendLine($"   {message}");
                     var patternExplanation = ExplainPatternError(errorElementName, errorElement, xsdDoc, ns);
                     result.Append(patternExplanation);
+                    result.AppendLine();
+                    result.AppendLine($"💡 Текущее значение: '{errorElement.Value}'");
                 }
-                else if (message.Contains("could not be converted") || 
-                         message.Contains("не может быть преобразован") ||
-                         message.Contains("invalid value") ||
-                         message.Contains("is not a valid value"))
+                else if (Has("could not be converted") ||
+                         Has("invalid value") ||
+                         Has("is not a valid value"))
                 {
-                    // Ошибка преобразования типа
+                    // Ошибка преобразования типа. Исходное сообщение показываем всегда:
+                    // для пользовательских и inline-типов подробного объяснения может не быть.
+                    result.AppendLine($"   {message}");
                     var typeExplanation = ExplainTypeConversionError(errorElementName, errorElement, xsdDoc, ns, message);
                     result.Append(typeExplanation);
                 }
-                else if (message.Contains("required attribute") || message.Contains("обязательный атрибут"))
+                else if (Has("required attribute"))
                 {
+                    result.AppendLine($"   {message}");
                     result.AppendLine($"   В элементе отсутствует обязательный атрибут.");
                     result.AppendLine($"   Проверьте, что все необходимые атрибуты заполнены.");
                 }
-                else if (message.Contains("required element") || message.Contains("обязательный элемент"))
+                else if (Has("required element") || Has("incomplete content"))
                 {
+                    result.AppendLine($"   {message}");
                     result.AppendLine($"   Отсутствует обязательный дочерний элемент.");
                     result.AppendLine($"   Проверьте структуру элемента согласно схеме.");
                 }
-                else if (message.Contains("invalid child element"))
+                else if (Has("invalid child element"))
                 {
+                    result.AppendLine($"   {message}");
                     result.AppendLine($"   Элемент находится не в том месте или не должен там быть.");
                 }
                 else
                 {
-                    // Пытаемся перевести стандартное сообщение
-                    var translatedMessage = TranslateStandardXsdError(message);
-                    result.AppendLine($"   {translatedMessage}");
+                    result.AppendLine($"   {message}");
                     
                     // Показываем значение с ошибкой только для не-типовых ошибок
                     if (!string.IsNullOrWhiteSpace(errorElement.Value))
@@ -508,6 +517,13 @@ namespace FileSignatureChecker.Services
             error.Path = pathBuilder.Length > 0 ? pathBuilder.ToString() : null;
             error.Description = descriptionBuilder.Length > 0 ? descriptionBuilder.ToString() : null;
             error.Details = detailsBuilder.Length > 0 ? detailsBuilder.ToString() : null;
+
+            // Короткие сообщения без разделов ("⚠️ ...") иначе давали пустую карточку,
+            // потому что карточка показывает только разобранные поля, а не FullMessage
+            if (error.Location == null && error.Path == null && error.Description == null && error.Details == null)
+            {
+                error.Description = errorText.Replace("⚠️", "").Trim();
+            }
 
             return error;
         }
@@ -631,59 +647,68 @@ namespace FileSignatureChecker.Services
             if (string.IsNullOrEmpty(message))
                 return message;
 
-            // Словарь переводов стандартных сообщений
-            var translations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            // Порядок важен: более длинные фразы должны идти раньше своих подстрок
+            var translations = new List<KeyValuePair<string, string>>
             {
                 // Основные фразы
-                { "The element", "Элемент" },
-                { "The value", "Значение" },
-                { "is not a valid value", "не является допустимым значением" },
-                { "is not a valid value for", "не является допустимым значением для" },
-                { "could not be converted", "невозможно преобразовать" },
-                { "invalid value", "недопустимое значение" },
-                { "is invalid", "недопустим" },
-                { "недопустим-", "недопустим." }, // исправляем дефис
+                new("The element", "Элемент" ),
+                new("The value", "Значение" ),
+                new("is not a valid value for", "не является допустимым значением для" ),
+                new("is not a valid value", "не является допустимым значением" ),
+                new("could not be converted", "невозможно преобразовать"),
+                new("invalid value", "недопустимое значение"),
+                new("is invalid", "недопустим"),
+                new("недопустим-", "недопустим."), // исправляем дефис
                 
                 // Типы данных
-                { "according to its datatype", "согласно типу данных" },
-                { "positiveInteger", "положительное целое число" },
-                { "nonNegativeInteger", "неотрицательное целое число" },
-                { "negativeInteger", "отрицательное целое число" },
-                { "integer", "целое число" },
-                { "decimal", "десятичное число" },
-                { "string", "строка" },
-                { "boolean", "логическое значение" },
-                { "date", "дата" },
-                { "dateTime", "дата и время" },
-                { "unsignedShort", "короткое целое число без знака" },
-                { "unsignedInt", "целое число без знака" },
-                { "unsignedByte", "байт без знака" },
+                new("according to its datatype", "согласно типу данных"),
+                new("positiveInteger", "положительное целое число"),
+                new("nonNegativeInteger", "неотрицательное целое число"),
+                new("negativeInteger", "отрицательное целое число"),
+                new("integer", "целое число"),
+                new("decimal", "десятичное число"),
+                new("string", "строка"),
+                new("boolean", "логическое значение"),
+                new("dateTime", "дата и время"),
+                new("date", "дата"),
+                new("unsignedShort", "короткое целое число без знака"),
+                new("unsignedInt", "целое число без знака"),
+                new("unsignedByte", "байт без знака"),
                 
                 // Ошибки диапазона
-                { "was either too large or too small for", "выходит за допустимые пределы для типа" },
-                { "Value", "Значение" },
-                { "PositiveInteger", "положительное целое число" },
+                new("was either too large or too small for", "выходит за допустимые пределы для типа"),
+                new("Value", "Значение"),
+                new("PositiveInteger", "положительное целое число"),
                 
                 // Структурные ошибки
-                { "has invalid child element", "содержит недопустимый дочерний элемент" },
-                { "List of possible elements expected", "Ожидается список возможных элементов" },
-                { "required attribute", "обязательный атрибут" },
-                { "required element", "обязательный элемент" },
-                { "missing", "отсутствует" },
-                { "not expected", "не ожидается" },
-                { "incomplete content", "неполное содержимое" },
+                new("has invalid child element", "содержит недопустимый дочерний элемент"),
+                new("List of possible elements expected", "Ожидается список возможных элементов"),
+                new("required attribute", "обязательный атрибут"),
+                new("required element", "обязательный элемент"),
+                new("missing", "отсутствует"),
+                new("not expected", "не ожидается"),
+                new("incomplete content", "неполное содержимое"),
                 
+                new("The Pattern constraint failed.", "Значение не соответствует требуемому формату."),
+                new(" element ", " элемент "),
+                new("The ", ""),
+
                 // URL и технические термины
-                { "http://www.w3.org/2001/XMLSchema", "схема XML" }
+                new("http://www.w3.org/2001/XMLSchema", "схема XML")
             };
 
-            var translated = message;
-            
-            // Применяем переводы по порядку
-            foreach (var pair in translations)
+            // Переводим только текст вне кавычек: в кавычках имена элементов и значения пользователя,
+            // их менять нельзя ('TotalValue' не должен стать 'TotalЗначение')
+            var parts = Regex.Split(message, "('[^']*')");
+            for (var i = 0; i < parts.Length; i++)
             {
-                translated = translated.Replace(pair.Key, pair.Value);
+                if (parts[i].StartsWith('\'')) continue;
+                foreach (var (phrase, replacement) in translations)
+                {
+                    parts[i] = parts[i].Replace(phrase, replacement);
+                }
             }
+            var translated = string.Concat(parts);
             
             // Удаляем лишние пробелы
             translated = Regex.Replace(translated, @"\s+", " ");
@@ -946,35 +971,29 @@ namespace FileSignatureChecker.Services
         /// <summary>
         /// Находит элемент по номеру строки
         /// </summary>
-        private XElement FindElementAtLine(XDocument doc, int lineNumber, string elementName)
+        private XElement? FindElementAtLine(XDocument doc, int lineNumber, string elementName)
         {
-            try
+            var all = doc.Descendants().ToList();
+            var named = all.Where(e => e.Name.LocalName == elementName).ToList();
+
+            if (named.Count == 1)
+                return named[0];
+
+            // Если имя из сообщения не элемент (например, атрибут), ищем среди всех элементов
+            var candidates = named.Count > 0 ? named : all;
+
+            // Ближайший элемент, начинающийся не позже строки с ошибкой.
+            // Раньше при отсутствии точного совпадения строки брался первый элемент с таким именем во всём файле,
+            // и карточка показывала путь и значение совсем другого места.
+            XElement? best = null;
+            foreach (var elem in candidates)
             {
-                var elements = doc.Descendants()
-                    .Where(e => e.Name.LocalName == elementName)
-                    .ToList();
-
-                // Если нашли только один элемент с таким именем - возвращаем его
-                if (elements.Count == 1)
-                    return elements[0];
-
-                // Если несколько - пытаемся найти по линии
-                foreach (var elem in elements)
-                {
-                    var lineInfo = (IXmlLineInfo)elem;
-                    if (lineInfo.HasLineInfo() && lineInfo.LineNumber == lineNumber)
-                    {
-                        return elem;
-                    }
-                }
-
-                // Если не нашли точно - возвращаем первый
-                return elements.FirstOrDefault();
+                var lineInfo = (IXmlLineInfo)elem;
+                if (lineInfo.HasLineInfo() && lineInfo.LineNumber <= lineNumber)
+                    best = elem;
             }
-            catch
-            {
-                return null;
-            }
+
+            return best ?? named.FirstOrDefault();
         }
 
         private FileSchemaInfo ExtractFileSchemaInfo(string filePath)
