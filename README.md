@@ -56,6 +56,20 @@ dotnet test FileSignatureChecker.Tests
 Для валидатора используется своя маленькая схема `TestData/Schemas/TestNote-01-01.xsd`,
 поэтому тесты не зависят от реальных пояснительных записок.
 
+## Выпуск релиза
+
+Установщик для Windows собирается в GitHub Actions (`.github/workflows/publish.yml`)
+с помощью Inno Setup (`installer/FileSignatureChecker.iss`). Чтобы выпустить версию:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+После этого прогоняются тесты, собирается приложение со встроенной средой .NET
+(устанавливать .NET пользователю не нужно), и в разделе Releases появляется
+`FileSignatureChecker-1.0.0-win-x64-setup.exe`.
+
 ## Использование
 
 ### 1. Выбор файлов

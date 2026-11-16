@@ -90,3 +90,7 @@ Desktop.ini
 /example.xml
 /Assets/*
 !/Assets/*.xsd
+
+# Локальная сборка установщика
+/publish/
+/installer-output/

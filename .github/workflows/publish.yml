@@ -1,0 +1,100 @@
+name: Publish
+
+# Релиз создаётся пушем тега вида v1.2.3:
+#   git tag v1.2.3
+#   git push origin v1.2.3
+# Ручной запуск (Actions → Publish → Run workflow) собирает установщик
+# и выкладывает его как артефакт сборки, без релиза.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  publish:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          $ref = '${{ github.ref_name }}'
+          if ('${{ github.ref_type }}' -eq 'tag' -and $ref -match '^v(\d+\.\d+\.\d+)') {
+            $version = $Matches[1]
+          } else {
+            $version = '0.0.${{ github.run_number }}'
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $version"
+
+      - name: Test
+        run: dotnet test FileSignatureChecker.Tests -c Release
+
+      - name: Publish app
+        run: >
+          dotnet publish FileSignatureChecker.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:Version=${{ steps.version.outputs.version }}
+          -o publish
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y
+          }
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            "/DAppVersion=${{ steps.version.outputs.version }}" `
+            "/DSourceDir=$env:GITHUB_WORKSPACE\publish" `
+            "/DOutputDir=$env:GITHUB_WORKSPACE\installer-output" `
+            installer\FileSignatureChecker.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FileSignatureChecker-${{ steps.version.outputs.version }}-setup
+          path: installer-output/*.exe
+
+      # Описание релиза берётся из сообщения аннотированного тега (git tag -a v1.2.3 -F notes.md).
+      # checkout превращает аннотированный тег в лёгкий, поэтому тег докачивается заново.
+      - name: Read release notes from tag
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          tag='${{ github.ref_name }}'
+          git fetch --force origin "refs/tags/${tag}:refs/tags/${tag}"
+          git tag -l --format='%(contents)' "$tag" > release-notes.md
+          cat release-notes.md
+
+      - name: Create release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: FileSignatureChecker ${{ steps.version.outputs.version }}
+          body_path: release-notes.md
+          files: installer-output/*.exe
+          generate_release_notes: true

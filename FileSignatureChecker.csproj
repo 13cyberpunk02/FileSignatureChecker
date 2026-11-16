@@ -20,6 +20,11 @@
     <EmbeddedResource Remove="FileSignatureChecker.Tests\**" />
   </ItemGroup>
 
+  <!-- Результаты локальной сборки установщика (installer\FileSignatureChecker.iss) -->
+  <ItemGroup>
+    <None Remove="publish\**;installer-output\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
