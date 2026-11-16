@@ -398,7 +398,7 @@ namespace FileSignatureChecker.Services
                 }
                 else if (Has("could not be converted") ||
                          Has("invalid value") ||
-                         Has("is not a valid value"))
+                         Has("is not a valid "))   // "...is not a valid Decimal value", "...is not a valid Date value"
                 {
                     // Ошибка преобразования типа. Исходное сообщение показываем всегда:
                     // для пользовательских и inline-типов подробного объяснения может не быть.

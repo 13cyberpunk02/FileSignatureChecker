@@ -12,6 +12,14 @@
     <Content Include="icons8-puzzle-matching-50.ico" />
   </ItemGroup>
 
+  <!-- Тестовый проект лежит внутри папки приложения: не компилируем его в приложение -->
+  <ItemGroup>
+    <Compile Remove="FileSignatureChecker.Tests\**" />
+    <Page Remove="FileSignatureChecker.Tests\**" />
+    <None Remove="FileSignatureChecker.Tests\**" />
+    <EmbeddedResource Remove="FileSignatureChecker.Tests\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
