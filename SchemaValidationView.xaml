@@ -81,6 +81,29 @@
                     Visibility="{Binding IsFileNameVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                 <!--  УСПЕШНАЯ ВАЛИДАЦИЯ  -->
+                <!--  ПРЕДУПРЕЖДЕНИЕ О ВЕРСИИ СХЕМЫ  -->
+                <materialDesign:Card
+                    Margin="0,20,0,0"
+                    Padding="16"
+                    Background="#FFF3E0"
+                    Visibility="{Binding SchemaWarning, Converter={StaticResource NullToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon
+                            Width="24"
+                            Height="24"
+                            Margin="0,0,12,0"
+                            VerticalAlignment="Top"
+                            Foreground="#FF9800"
+                            Kind="AlertOutline" />
+                        <TextBlock
+                            MaxWidth="900"
+                            FontSize="13"
+                            Foreground="#E65100"
+                            Text="{Binding SchemaWarning}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </materialDesign:Card>
+
                 <materialDesign:Card
                     Margin="0,20,0,0"
                     Padding="20"

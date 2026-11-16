@@ -23,11 +23,12 @@ public partial class SchemaValidationViewModel : ObservableObject
 {
     private readonly XmlValidationService _validationService;
 
-    [ObservableProperty] private string _fileName;
+    [ObservableProperty] private string? _fileName;
     [ObservableProperty] private bool _isFileNameVisible;
     [ObservableProperty] private string _validationResultText;
-    [ObservableProperty] private string _schemaFileName;
-    [ObservableProperty] private string _schemaVersion;
+    [ObservableProperty] private string? _schemaFileName;
+    [ObservableProperty] private string? _schemaVersion;
+    [ObservableProperty] private string? _schemaWarning;
     [ObservableProperty] private bool _isValidationSuccess;
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private int _errorCount;
@@ -35,7 +36,7 @@ public partial class SchemaValidationViewModel : ObservableObject
     // Для множественных ошибок
     [ObservableProperty] private ObservableCollection<ValidationError> _errors;
     [ObservableProperty] private ObservableCollection<ValidationError> _filteredErrors;
-    [ObservableProperty] private string _searchText;
+    [ObservableProperty] private string? _searchText;
     [ObservableProperty] private bool _hasErrors;
 
     public SchemaValidationViewModel()
@@ -50,7 +51,7 @@ public partial class SchemaValidationViewModel : ObservableObject
         HasErrors = false;
     }
 
-    partial void OnSearchTextChanged(string value)
+    partial void OnSearchTextChanged(string? value)
     {
         FilterErrors();
     }
@@ -105,6 +106,7 @@ public partial class SchemaValidationViewModel : ObservableObject
             ValidationResultText = "⏳ Идет проверка файла...";
             IsValidationSuccess = false;
             HasErrors = false;
+            SchemaWarning = null;
 
             var result = await _validationService.ValidateFileAsync(filePath);
             DisplayValidationResult(result);
@@ -125,7 +127,8 @@ public partial class SchemaValidationViewModel : ObservableObject
     {
         IsValidationSuccess = result.IsValid;
         SchemaFileName = result.SchemaFileName;
-        SchemaVersion = result.SchemaVersion ?? "не указана";
+        SchemaVersion = string.IsNullOrWhiteSpace(result.SchemaVersion) ? "не указана" : result.SchemaVersion;
+        SchemaWarning = result.SchemaWarning;
 
         if (result.IsValid)
         {
@@ -241,5 +244,5 @@ public partial class SchemaValidationViewModel : ObservableObject
         CloseRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    public event EventHandler CloseRequested;
+    public event EventHandler? CloseRequested;
 }

@@ -15,7 +15,7 @@ namespace FileSignatureChecker.Services
     public class XmlValidationService
     {
         private readonly string _schemaDirectory;
-        private List<XsdSchemaInfo> _availableSchemas;
+        private List<XsdSchemaInfo> _availableSchemas = new();
 
         // Словарь переводов стандартных типов XSD на русский
         private static readonly Dictionary<string, string> XsdTypeTranslations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -49,7 +49,7 @@ namespace FileSignatureChecker.Services
             { "token", "токен (строка без лишних пробелов)" }
         };
 
-        public XmlValidationService(string schemaDirectory = null)
+        public XmlValidationService(string? schemaDirectory = null)
         {
             _schemaDirectory = schemaDirectory ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
             LoadAvailableSchemas();
@@ -59,11 +59,10 @@ namespace FileSignatureChecker.Services
         {
             _availableSchemas = new List<XsdSchemaInfo>();
 
+            // Папку не создаём: в Program Files у пользователя нет прав на запись, и окно падало бы.
+            // Отсутствие схем и так объясняется пользователю при валидации.
             if (!Directory.Exists(_schemaDirectory))
-            {
-                Directory.CreateDirectory(_schemaDirectory);
                 return;
-            }
 
             var xsdFiles = Directory.GetFiles(_schemaDirectory, "*.xsd");
             
@@ -84,7 +83,7 @@ namespace FileSignatureChecker.Services
             }
         }
 
-        private XsdSchemaInfo ExtractSchemaInfo(string xsdFilePath)
+        private XsdSchemaInfo? ExtractSchemaInfo(string xsdFilePath)
         {
             try
             {
@@ -164,7 +163,7 @@ namespace FileSignatureChecker.Services
                     };
                 }
 
-                var matchingSchema = FindMatchingSchema(fileInfo);
+                var matchingSchema = FindMatchingSchema(fileInfo, out var schemaWarning);
 
                 if (matchingSchema == null)
                 {
@@ -240,7 +239,8 @@ namespace FileSignatureChecker.Services
                         SchemaVersion = string.IsNullOrEmpty(matchingSchema.Version) 
                             ? matchingSchema.FixedSchemaVersion 
                             : matchingSchema.Version,
-                        SchemaPath = matchingSchema.FilePath
+                        SchemaPath = matchingSchema.FilePath,
+                        SchemaWarning = schemaWarning
                     };
                 }
                 else
@@ -268,9 +268,29 @@ namespace FileSignatureChecker.Services
                         SchemaVersion = string.IsNullOrEmpty(matchingSchema.Version) 
                             ? matchingSchema.FixedSchemaVersion 
                             : matchingSchema.Version,
-                        SchemaPath = matchingSchema.FilePath
+                        SchemaPath = matchingSchema.FilePath,
+                        SchemaWarning = schemaWarning
                     };
                 }
+            }
+            catch (XmlException ex)
+            {
+                // Файл не является корректным XML: показываем, где именно сломана разметка
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Errors = new List<ValidationError>
+                    {
+                        new ValidationError
+                        {
+                            ErrorNumber = 1,
+                            Location = $"Строка {ex.LineNumber}, позиция {ex.LinePosition}",
+                            Description = "Файл не является корректным XML документом (нарушена разметка).",
+                            Details = ex.Message,
+                            FullMessage = $"❌ Файл не является корректным XML документом.\n\nСтрока {ex.LineNumber}, позиция {ex.LinePosition}\n{ex.Message}"
+                        }
+                    }
+                };
             }
             catch (Exception ex)
             {
@@ -322,7 +342,7 @@ namespace FileSignatureChecker.Services
                 var errorElementName = elementNameMatch.Groups[1].Value;
 
                 // Находим элемент в XML по номеру строки
-                XElement errorElement = FindElementAtLine(xmlDoc, error.LineNumber, errorElementName);
+                XElement? errorElement = FindElementAtLine(xmlDoc, error.LineNumber, errorElementName);
                 
                 if (errorElement == null)
                 {
@@ -340,9 +360,11 @@ namespace FileSignatureChecker.Services
                 result.AppendLine($"📂 Путь к проблемному элементу:");
                 
                 var pathDescriptions = new List<string>();
+                string? parentName = null;
                 foreach (var pathElement in path)
                 {
-                    var description = GetElementDescription(xsdDoc, ns, pathElement);
+                    var description = GetElementDescription(xsdDoc, ns, pathElement, parentName);
+                    parentName = pathElement;
                     if (!string.IsNullOrEmpty(description))
                     {
                         // Показываем только описание без технического названия
@@ -368,8 +390,11 @@ namespace FileSignatureChecker.Services
                     result.AppendLine($"   {message}");
                     var patternExplanation = ExplainPatternError(errorElementName, errorElement, xsdDoc, ns);
                     result.Append(patternExplanation);
-                    result.AppendLine();
-                    result.AppendLine($"💡 Текущее значение: '{errorElement.Value}'");
+                    if (!errorElement.HasElements)
+                    {
+                        result.AppendLine();
+                        result.AppendLine($"💡 Текущее значение: '{errorElement.Value}'");
+                    }
                 }
                 else if (Has("could not be converted") ||
                          Has("invalid value") ||
@@ -402,8 +427,11 @@ namespace FileSignatureChecker.Services
                 {
                     result.AppendLine($"   {message}");
                     
-                    // Показываем значение с ошибкой только для не-типовых ошибок
-                    if (!string.IsNullOrWhiteSpace(errorElement.Value))
+                    // Значение показываем только у конечного элемента, о котором говорит ошибка.
+                    // Для ошибок атрибутов найденный элемент может быть корнем, и его Value — текст всего файла.
+                    if (errorElement.Name.LocalName == errorElementName &&
+                        !errorElement.HasElements &&
+                        !string.IsNullOrWhiteSpace(errorElement.Value))
                     {
                         result.AppendLine();
                         result.AppendLine($"💡 Текущее значение: '{errorElement.Value}'");
@@ -536,8 +564,9 @@ namespace FileSignatureChecker.Services
             var result = new StringBuilder();
             
             // Получаем описание элемента из XSD
-            var elementDescription = GetElementDescription(xsdDoc, ns, elementName);
-            
+            var parentName = errorElement?.Parent?.Name.LocalName;
+            var elementDescription = GetElementDescription(xsdDoc, ns, elementName, parentName);
+
             if (!string.IsNullOrEmpty(elementDescription))
             {
                 result.AppendLine($"   Поле: {CleanDescription(elementDescription)}");
@@ -545,8 +574,7 @@ namespace FileSignatureChecker.Services
             }
 
             // Ищем определение элемента в XSD
-            var elementDef = xsdDoc.Descendants(ns + "element")
-                .FirstOrDefault(e => e.Attribute("name")?.Value == elementName);
+            var elementDef = FindXsdElement(xsdDoc, ns, elementName, parentName);
 
             if (elementDef != null)
             {
@@ -627,7 +655,7 @@ namespace FileSignatureChecker.Services
                     }
                     
                     // Добавляем текущее значение из элемента
-                    if (errorElement != null && !string.IsNullOrEmpty(errorElement.Value))
+                    if (errorElement != null && !errorElement.HasElements && !string.IsNullOrEmpty(errorElement.Value))
                     {
                         result.AppendLine();
                         result.AppendLine($"   💡 Текущее значение: '{errorElement.Value}'");
@@ -651,6 +679,8 @@ namespace FileSignatureChecker.Services
             var translations = new List<KeyValuePair<string, string>>
             {
                 // Основные фразы
+                new("The value of the", "Значение"),
+                new(" attribute does not equal its fixed value.", " атрибута не совпадает с фиксированным значением, заданным в схеме."),
                 new("The element", "Элемент" ),
                 new("The value", "Значение" ),
                 new("is not a valid value for", "не является допустимым значением для" ),
@@ -721,21 +751,21 @@ namespace FileSignatureChecker.Services
         {
             var result = new StringBuilder();
             
-            var elementDescription = GetElementDescription(xsdDoc, ns, elementName);
-            
+            var parentName = errorElement?.Parent?.Name.LocalName;
+            var elementDescription = GetElementDescription(xsdDoc, ns, elementName, parentName);
+
             if (!string.IsNullOrEmpty(elementDescription))
             {
                 result.AppendLine($"   Поле: {elementDescription}");
             }
 
             // Ищем тип элемента
-            var elementDef = xsdDoc.Descendants(ns + "element")
-                .FirstOrDefault(e => e.Attribute("name")?.Value == elementName);
+            var elementDef = FindXsdElement(xsdDoc, ns, elementName, parentName);
 
             if (elementDef != null)
             {
-                XElement typeDef = null;
-                string typeName = elementDef.Attribute("type")?.Value;
+                XElement? typeDef = null;
+                string? typeName = elementDef.Attribute("type")?.Value;
                 
                 if (!string.IsNullOrEmpty(typeName))
                 {
@@ -892,10 +922,9 @@ namespace FileSignatureChecker.Services
         /// <summary>
         /// Получает описание элемента из XSD
         /// </summary>
-        private string GetElementDescription(XDocument xsdDoc, XNamespace ns, string elementName)
+        private string? GetElementDescription(XDocument xsdDoc, XNamespace ns, string elementName, string? parentName = null)
         {
-            var element = xsdDoc.Descendants(ns + "element")
-                .FirstOrDefault(e => e.Attribute("name")?.Value == elementName);
+            var element = FindXsdElement(xsdDoc, ns, elementName, parentName);
 
             if (element != null)
             {
@@ -936,6 +965,47 @@ namespace FileSignatureChecker.Services
 
             return null;
         }
+
+        /// <summary>
+        /// Находит определение xs:element по имени с учётом родителя.
+        /// Одно имя (Name, Version, File...) встречается в схеме в разных разделах с разным смыслом,
+        /// поэтому первый попавшийся по имени элемент часто давал описание из другого раздела.
+        /// </summary>
+        private static XElement? FindXsdElement(XDocument xsdDoc, XNamespace ns, string elementName, string? parentName)
+        {
+            var candidates = xsdDoc.Descendants(ns + "element")
+                .Where(e => e.Attribute("name")?.Value == elementName)
+                .ToList();
+
+            if (candidates.Count <= 1 || string.IsNullOrEmpty(parentName))
+                return candidates.FirstOrDefault();
+
+            foreach (var candidate in candidates)
+            {
+                // Ближайший владелец: либо объемлющий xs:element, либо именованный xs:complexType
+                var owner = candidate.Ancestors()
+                    .FirstOrDefault(a => a.Name == ns + "element" || (a.Name == ns + "complexType" && a.Attribute("name") != null));
+                if (owner == null) continue;
+
+                if (owner.Name == ns + "element" && owner.Attribute("name")?.Value == parentName)
+                    return candidate;
+
+                if (owner.Name == ns + "complexType")
+                {
+                    var typeName = owner.Attribute("name")!.Value;
+                    var parentUsesType = xsdDoc.Descendants(ns + "element").Any(e =>
+                        e.Attribute("name")?.Value == parentName &&
+                        StripPrefix(e.Attribute("type")?.Value) == typeName);
+                    if (parentUsesType)
+                        return candidate;
+                }
+            }
+
+            return candidates[0];
+        }
+
+        private static string? StripPrefix(string? qualifiedName)
+            => qualifiedName?.Contains(':') == true ? qualifiedName.Split(':')[1] : qualifiedName;
 
         /// <summary>
         /// Очищает описание от лишних пробелов и переносов строк
@@ -996,7 +1066,7 @@ namespace FileSignatureChecker.Services
             return best ?? named.FirstOrDefault();
         }
 
-        private FileSchemaInfo ExtractFileSchemaInfo(string filePath)
+        private FileSchemaInfo? ExtractFileSchemaInfo(string filePath)
         {
             try
             {
@@ -1040,14 +1110,37 @@ namespace FileSignatureChecker.Services
 
                 return info;
             }
-            catch
+            catch (Exception ex) when (ex is not XmlException)
             {
+                // XmlException пробрасываем: ValidateFile покажет строку и позицию ошибки разметки
                 return null;
             }
         }
 
-        private XsdSchemaInfo FindMatchingSchema(FileSchemaInfo fileInfo)
+        /// <summary>
+        /// Приводит версию к сравнимому виду: "01.05" и "1.5" считаются одной версией.
+        /// </summary>
+        private static string NormalizeVersion(string? version)
+            => string.Join(".", (version ?? string.Empty).Trim()
+                .Split(new[] { '.', '_', '-' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.TrimStart('0') is { Length: > 0 } t ? t : "0"));
+
+        private static bool VersionsMatch(XsdSchemaInfo schema, string? fileVersion)
         {
+            var file = NormalizeVersion(fileVersion);
+            return file.Length > 0 &&
+                   (NormalizeVersion(schema.Version) == file || NormalizeVersion(schema.FixedSchemaVersion) == file);
+        }
+
+        private static string DescribeSchemaVersion(XsdSchemaInfo schema)
+            => !string.IsNullOrEmpty(schema.FixedSchemaVersion) ? schema.FixedSchemaVersion
+             : !string.IsNullOrEmpty(schema.Version) ? schema.Version
+             : "не указана";
+
+        private XsdSchemaInfo? FindMatchingSchema(FileSchemaInfo fileInfo, out string? warning)
+        {
+            warning = null;
+
             if (fileInfo == null || string.IsNullOrEmpty(fileInfo.SchemaLocation))
                 return null;
 
@@ -1059,7 +1152,7 @@ namespace FileSignatureChecker.Services
             // ПРИОРИТЕТ 1: Точное совпадение по имени файла И версии
             var exactMatch = _availableSchemas.FirstOrDefault(s =>
                 s.FileName.Equals(schemaFileName, StringComparison.OrdinalIgnoreCase) &&
-                (s.Version == fileInfo.Version || s.FixedSchemaVersion == fileInfo.Version));
+                VersionsMatch(s, fileInfo.Version));
 
             if (exactMatch != null)
             {
@@ -1074,6 +1167,15 @@ namespace FileSignatureChecker.Services
             if (nameMatch != null)
             {
                 System.Diagnostics.Debug.WriteLine($"[FindMatchingSchema] ⚠ Найдено совпадение по имени: {nameMatch.FileName} (версия может не совпадать)");
+
+                // Предупреждаем, только если обе версии известны и действительно различаются
+                var schemaHasVersion = NormalizeVersion(nameMatch.Version).Length > 0 ||
+                                       NormalizeVersion(nameMatch.FixedSchemaVersion).Length > 0;
+                if (schemaHasVersion && NormalizeVersion(fileInfo.Version).Length > 0)
+                {
+                    warning = $"Версия файла ({fileInfo.Version}) не совпадает с версией схемы " +
+                              $"{nameMatch.FileName} ({DescribeSchemaVersion(nameMatch)}). Результат проверки может быть неточным.";
+                }
                 return nameMatch;
             }
 
@@ -1083,15 +1185,19 @@ namespace FileSignatureChecker.Services
             
             if (!string.IsNullOrEmpty(baseSchemaName))
             {
-                var baseNameMatch = _availableSchemas.FirstOrDefault(s =>
-                {
-                    var candidateBaseName = ExtractBaseSchemaName(s.FileName);
-                    return candidateBaseName.Equals(baseSchemaName, StringComparison.OrdinalIgnoreCase);
-                });
+                // Среди схем того же семейства берём самую новую (раньше — первую попавшуюся),
+                // и обязательно предупреждаем: проверка идёт не по той схеме, которую требует файл
+                var baseNameMatch = _availableSchemas
+                    .Where(s => ExtractBaseSchemaName(s.FileName).Equals(baseSchemaName, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(s => s.FileName, StringComparer.OrdinalIgnoreCase)
+                    .FirstOrDefault();
 
                 if (baseNameMatch != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"[FindMatchingSchema] ⚠ Найдено совпадение по базовому имени: {baseNameMatch.FileName}");
+                    warning = $"Схема '{schemaFileName}', которую требует файл, не найдена. " +
+                              $"Проверка выполнена по схеме другой версии: {baseNameMatch.FileName} ({DescribeSchemaVersion(baseNameMatch)}). " +
+                              $"Результат может быть неточным — добавьте нужную схему в папку {_schemaDirectory}.";
                     return baseNameMatch;
                 }
             }

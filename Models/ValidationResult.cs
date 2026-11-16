@@ -25,15 +25,21 @@ public class ValidationResult
     /// <summary>
     /// Имя файла схемы XSD, который использовался
     /// </summary>
-    public string SchemaFileName { get; set; }
+    public string? SchemaFileName { get; set; }
 
     /// <summary>
     /// Версия схемы
     /// </summary>
-    public string SchemaVersion { get; set; }
+    public string? SchemaVersion { get; set; }
 
     /// <summary>
     /// Путь к файлу XSD
     /// </summary>
-    public string SchemaPath { get; set; }
+    public string? SchemaPath { get; set; }
+
+    /// <summary>
+    /// Предупреждение о выборе схемы (версия не совпадает или использована схема другой версии).
+    /// null — схема подобрана точно.
+    /// </summary>
+    public string? SchemaWarning { get; set; }
 }
